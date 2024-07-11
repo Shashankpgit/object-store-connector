@@ -1,281 +1,239 @@
 {
     "aws-s3-connector": {
         "schema": {
+            "title": "Connector Config",
             "type": "object",
             "properties": {
-                "connector_config": {
-                    "title": "Connector Config",
+              "source": {
+                "title": "Storage Source",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "title": "Storage type",
+                    "fieldDescription": [
+                      {
+                        "type": "string",
+                        "description": "Enter valid storage service type."
+                      }
+                    ],
+                    "default": "s3"
+                  },
+                  "bucket": {
+                    "title": "Bucket Name",
+                    "type": "string",
+                    "minLength": 3,
+                    "pattern": "(?!(^xn--|^sthree-|.+--ol-s3$|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
+                    "default": "default-bucket-name",
+                    "fieldDescription": [
+                      {
+                        "type": "string",
+                        "description": "Enter the Source Bucket Name."
+                      }
+                    ]
+                  },
+                  "file-format": {
+                    "title": "File Format",
+                    "type": "string",
+                    "enum": [
+                      "jsonl",
+                      "csv",
+                      "parquet",
+                      "avro"
+                    ],
+                    "fieldDescription": [
+                      {
+                        "type": "string",
+                        "description": "Enter the file format."
+                      }
+                    ]
+                  },
+                  "prefix-type": {
+                    "title": "Prefix Type",
+                    "type": "string",
+                    "enum": [
+                      "flat",
+                      "partitioned"
+                    ],
+                    "fieldDescription": [
+                      {
+                        "type": "string",
+                        "description": "Enter the prefix for bucket name."
+                      }
+                    ]
+                  },
+                  "credentials": {
+                    "title": "Credentials",
                     "type": "object",
-                    "encrypt": true,
+                    "fieldDescription": [{
+                      "type": "string",
+                      "description": "Enter proper credentials. It is recommended to create a new IAM user in AWS and assign the following policy that limits it to certain operations."
+                    }],
                     "properties": {
-                        "type": {
-                            "title": "Storage Type",
-                            "type": "string",
-                            "enum": [
-                                "s3",
-                                "gcs",
-                                "azure",
-                                "hdfs"
-                            ]
-                        }
-                    },
-                    "dependencies": {
-                        "type": {
-                            "oneOf": [
-                                {
-                                    "properties": {
-                                        "type": {
-                                            "enum": [
-                                                "s3"
-                                            ]
-                                        },
-                                        "credentials": {
-                                            "title": "Credentials",
-                                            "type": "object",
-                                            "properties": {
-                                                "accessKey": {
-                                                    "type": "string",
-                                                    "title": "Access Key",
-                                                    "pattern": "^(ASIA|AKIA|AROA|AIDA)([A-Z0-9]+)$",
-                                                    "maxLength": 40,
-                                                    "fieldDescription": [
-                                                        {
-                                                            "type": "string",
-                                                            "description": ""
-                                                        }
-                                                    ]
-                                                },
-                                                "secretKey": {
-                                                    "type": "string",
-                                                    "title": "Secret Key",
-                                                    "pattern": "^[a-zA-Z0-9+/=]*$",
-                                                    "maxLength": 20,
-                                                    "fieldDescription": [
-                                                        {
-                                                            "type": "string",
-                                                            "description": ""
-                                                        }
-                                                    ]
-                                                },
-                                                "region": {
-                                                    "type": "string",
-                                                    "title": "Region",
-                                                    "enum": [
-                                                        "us-east-1",
-                                                        "us-east-2",
-                                                        "us-west-1",
-                                                        "us-west-2",
-                                                        "ap-south-1",
-                                                        "ap-northeast-1",
-                                                        "ap-northeast-2",
-                                                        "ap-northeast-3",
-                                                        "ap-southeast-1",
-                                                        "ap-southeast-2",
-                                                        "ap-east-1",
-                                                        "ap-southeast-3",
-                                                        "ap-southeast-4",
-                                                        "ca-central-1",
-                                                        "eu-central-1",
-                                                        "eu-west-1",
-                                                        "eu-west-2",
-                                                        "eu-west-3",
-                                                        "eu-north-1",
-                                                        "eu-south-1",
-                                                        "eu-south-2",
-                                                        "eu-central-2",
-                                                        "sa-east-1",
-                                                        "af-south-1",
-                                                        "me-south-1",
-                                                        "me-central-1",
-                                                        "il-central-1"
-                                                    ],
-                                                    "fieldDescription": [
-                                                        {
-                                                            "type": "string",
-                                                            "description": ""
-                                                        }
-                                                    ]
-                                                }
-                                            }
-                                        },
-                                        "source_info": {
-                                            "title": "Source Information",
-                                            "type": "object",
-                                            "properties": {
-                                                "bucket": {
-                                                    "title": "Bucket Name",
-                                                    "type": "string",
-                                                    "minLength": 3,
-                                                    "pattern": "(?!(^xn--|^sthree-|.+--ol-s3$|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
-                                                    "default": "default-bucket-name",
-                                                    "fieldDescription": [
-                                                        {
-                                                            "type": "string",
-                                                            "description": ""
-                                                        }
-                                                    ]
-                                                },
-                                                "file_format": {
-                                                    "title": "File Format",
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "jsonl",
-                                                        "csv",
-                                                        "parquet",
-                                                        "avro"
-                                                    ],
-                                                    "fieldDescription": [
-                                                        {
-                                                            "type": "string",
-                                                            "description": ""
-                                                        }
-                                                    ]
-                                                },
-                                                "prefix_type": {
-                                                    "title": "Prefix Type",
-                                                    "type": "string",
-                                                    "enum": [
-                                                        "flat",
-                                                        "partitioned"
-                                                    ],
-                                                    "fieldDescription": [
-                                                        {
-                                                            "type": "string",
-                                                            "description": ""
-                                                        }
-                                                    ]
-                                                }
-                                            },
-                                            "dependencies": {
-                                                "prefix_type": {
-                                                    "oneOf": [
-                                                        {
-                                                            "properties": {
-                                                                "prefix_type": {
-                                                                    "enum": [
-                                                                        "flat"
-                                                                    ]
-                                                                },
-                                                                "prefix": {
-                                                                    "title": "Prefix",
-                                                                    "type": "string",
-                                                                    "fieldDescription": [
-                                                                        {
-                                                                            "type": "string",
-                                                                            "description": ""
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            }
-                                                        },
-                                                        {
-                                                            "properties": {
-                                                                "prefix_type": {
-                                                                    "enum": [
-                                                                        "partitioned"
-                                                                    ]
-                                                                },
-                                                                "prefix_format": {
-                                                                    "title": "Prefix Format",
-                                                                    "type": "string",
-                                                                    "default": "%y/%m/%d/%H",
-                                                                    "fieldDescription": [
-                                                                        {
-                                                                            "type": "string",
-                                                                            "description": ""
-                                                                        }
-                                                                    ]
-                                                                }
-                                                            }
-                                                        }
-                                                    ]
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
+                      "access-key": {
+                        "type": "string",
+                        "title": "Access Key",
+                        "pattern": "^(ASIA|AKIA|AROA|AIDA)([A-Z0-9]+)$",
+                        "maxLength": 40,
+                        "fieldDescription": [{
+                          "type": "string",
+                          "description": ""
+                        }]
+                      },
+                      "secret-key": {
+                        "type": "string",
+                        "title": "Secret Key",
+                        "pattern": "^[a-zA-Z0-9+/=]*$",
+                        "maxLength": 20,
+                        "fieldDescription": [{
+                          "type": "string",
+                          "description": ""
+                        }]
+                      },
+                      "region": {
+                        "type": "string",
+                        "title": "Region",
+                        "enum": [
+                          "us-east-1",
+                          "us-east-2",
+                          "us-west-1",
+                          "us-west-2",
+                          "ap-south-1",
+                          "ap-northeast-1",
+                          "ap-northeast-2",
+                          "ap-northeast-3",
+                          "ap-southeast-1",
+                          "ap-southeast-2",
+                          "ap-east-1",
+                          "ap-southeast-3",
+                          "ap-southeast-4",
+                          "ca-central-1",
+                          "eu-central-1",
+                          "eu-west-1",
+                          "eu-west-2",
+                          "eu-west-3",
+                          "eu-north-1",
+                          "eu-south-1",
+                          "eu-south-2",
+                          "eu-central-2",
+                          "sa-east-1",
+                          "af-south-1",
+                          "me-south-1",
+                          "me-central-1",
+                          "il-central-1"
+                        ],
+                        "fieldDescription": [{
+                          "type": "string",
+                          "description": ""
+                        }]
+                      }
                     }
+                  }
                 },
-                "operations_config": {
-                    "title": "Operations Configuration",
-                    "type": "object",
-                    "properties": {
-                        "batch_size": {
-                            "type": "number",
-                            "title": "Batch Size",
-                            "default": 100,
-                            "fieldDescription": [
-                                {
-                                    "type": "string",
-                                    "description": ""
-                                }
-                            ]
-                        },
-                        "max_batches": {
-                            "type": "number",
-                            "title": "Maximum Batches",
-                            "default": 10,
-                            "fieldDescription": [
-                                {
-                                    "type": "string",
-                                    "description": ""
-                                }
-                            ]
-                        },
-                        "pollingInterval": {
-                            "type": "string",
-                            "title": "Polling Interval",
+                "dependencies": {
+                  "prefix-type": {
+                    "oneOf": [
+                      {
+                        "properties": {
+                          "prefix-type": {
                             "enum": [
-                                "Once",
-                                "Periodic"
-                            ],
-                            "fieldDescription": [
-                                {
-                                    "type": "string",
-                                    "description": "Select polling interval"
-                                }
+                              "flat"
                             ]
+                          },
+                          "prefix": {
+                            "title": "Prefix",
+                            "type": "string"
+                          }
                         }
-                    },
-                    "dependencies": {
-                        "pollingInterval": {
-                            "oneOf": [
-                                {
-                                    "properties": {
-                                        "pollingInterval": {
-                                            "enum": [
-                                                "Periodic"
-                                            ]
-                                        },
-                                        "schedule": {
-                                            "type": "string",
-                                            "title": "Schedule",
-                                            "enum": [
-                                                "Hourly",
-                                                "Daily",
-                                                "Weekly",
-                                                "Monthly"
-                                            ],
-                                            "fieldDescription": [
-                                                {
-                                                    "type": "string",
-                                                    "description": ""
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "schedule"
-                                    ]
-                                }
+                      },
+                      {
+                        "properties": {
+                          "prefix-type": {
+                            "enum": [
+                              "partitioned"
                             ]
+                          },
+                          "prefix-format": {
+                            "title": "Prefix Format",
+                            "type": "string",
+                            "default": "%y/%m/%d/%H"
+                          }
                         }
-                    }
+                      }
+                    ]
+                  }
                 }
-            }
-        },
+              },
+              "operations-config": {
+                "title": "Operations Configuration",
+                "type": "object",
+                "properties": {
+                  "batch-size": {
+                    "type": "number",
+                    "title": "Batch Size",
+                    "default": 100,
+                    "fieldDescription": [
+                      {
+                        "type": "string",
+                        "description": "Enter the number of batches."
+                      }
+                    ]
+                  },
+                  "max-batches": {
+                    "type": "number",
+                    "title": "Maximum Batches",
+                    "default": 10,
+                    "fieldDescription": [
+                      {
+                        "type": "string",
+                        "description": "Enter the maximum number of batches."
+                      }
+                    ]
+                  },
+                  "polling-interval": {
+                    "type": "string",
+                    "title": "Polling Interval",
+                    "enum": ["Once", "Periodic"],
+                    "fieldDescription": [{
+                      "type": "string",
+                      "description": "Select polling interval"
+                    }]
+                  }
+                },
+                "dependencies": {
+                  "polling-interval": {
+                    "oneOf": [
+                      {
+                        "properties": {
+                          "polling-interval": {
+                            "enum": [
+                              "Periodic"
+                            ]
+                          },
+                          "schedule": {
+                            "type": "string",
+                            "title": "Schedule",
+                            "enum": ["Hourly", "Daily", "Weekly", "Monthly"]
+                          }
+                        },
+                        "required": ["schedule"]
+                      },
+                      {
+                        "properties": {
+                          "pollingInterval": {
+                            "enum": [
+                              "Once"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "required": ["source", "operations-config"]
+          },
         "properties": {
             "connector_config": {
                 "credentials": {
@@ -287,7 +245,7 @@
                     }
                 }
             },
-            "operations_config": {
+            "operations-config": {
                 "batch_size": {
                     "ui:readonly": true
                 },
