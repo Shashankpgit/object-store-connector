@@ -35,23 +35,6 @@
                     }
                   ]
                 },
-                "file-format": {
-                  "title": "File Format",
-                  "type": "string",
-                  "enum": [
-                    "jsonl",
-                    "csv",
-                    "parquet",
-                    "avro"
-                  ],
-                  "description": "Choose a file format from below.",
-                  "fieldDescription": [
-                    {
-                      "type": "string",
-                      "description": "Enter the file format."
-                    }
-                  ]
-                },
                 "credentials": {
                   "title": "Credentials",
                   "type": "object",
@@ -127,7 +110,7 @@
                   "description": "Select a suitable polling interval.",
                   "fieldDescription": [{
                     "type": "string",
-                    "description": "Select polling interval."
+                    "description": "Depending on the batch-size and maximum-batches, select an appropriate schedule. A shorter schedule with a large batch-size and max-batches will result in parallel queries, which may result in more load on the database."
                   }]
                 }
               },
@@ -174,14 +157,6 @@
                     "secretKey": {
                         "ui:widget": "password"
                     }
-                }
-            },
-            "operations-config": {
-                "batch_size": {
-                    "ui:readonly": true
-                },
-                "max_batches": {
-                    "ui:readonly": true
                 }
             }
         }
