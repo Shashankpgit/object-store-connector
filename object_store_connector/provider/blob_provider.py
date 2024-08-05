@@ -63,9 +63,7 @@ class BlobProvider(ABC):
         config: Dict[str, Any] = None,
         sc: SparkSession = None,
     ) -> DataFrame:
-        print("reading objects...")
         if file_format == "jsonl":
-            print("Creating dataframe ...")
             df = sc.read.format("json").load(objectPath)
         elif file_format == "json":
             df = sc.read.format("json").option("multiLine", True).load(objectPath)

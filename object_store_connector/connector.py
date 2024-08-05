@@ -6,7 +6,7 @@ from typing import Any, Dict, Iterator
 from obsrv.common import ObsrvException
 from obsrv.connector import ConnectorContext, MetricsCollector
 from obsrv.connector.batch import ISourceConnector
-from obsrv.models import ErrorData, ExecutionState, StatusCode
+from obsrv.models import ErrorData, StatusCode
 from obsrv.utils import LoggerController
 from pyspark.conf import SparkConf
 from pyspark.sql import DataFrame, SparkSession
@@ -27,9 +27,6 @@ class ObjectStoreConnector(ISourceConnector):
         self.dedupe_tag = None
         self.success_state = StatusCode.SUCCESS.value
         self.error_state = StatusCode.FAILED.value
-        self.running_state = ExecutionState.RUNNING.value
-        self.not_running_state = ExecutionState.NOT_RUNNING.value
-        self.queued_state = ExecutionState.QUEUED.value
 
     def process(
         self,
@@ -38,15 +35,6 @@ class ObjectStoreConnector(ISourceConnector):
         connector_config: Dict[Any, Any],
         metrics_collector: MetricsCollector,
     ) -> Iterator[DataFrame]:
-        if (
-            ctx.state.get_state("status", default_value=self.not_running_state)
-            == self.running_state
-        ):
-            logger.info("Connector is already running. Skipping processing.")
-            return
-
-        ctx.state.put_state("status", self.running_state)
-        ctx.state.save_state()
         self.max_retries = (
             connector_config["source_max_retries"]
             if "source_max_retries" in connector_config
@@ -58,7 +46,6 @@ class ObjectStoreConnector(ISourceConnector):
             yield res
 
         last_run_time = datetime.datetime.now()
-        ctx.state.put_state("status", self.not_running_state)
         ctx.state.put_state("last_run_time", last_run_time)
         ctx.state.save_state()
 
