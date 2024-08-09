@@ -1,0 +1,4 @@
+metrics:
+  - name: num_api_calls
+    alias: Number of API Calls
+    description: The number of API calls made to the cloud provider

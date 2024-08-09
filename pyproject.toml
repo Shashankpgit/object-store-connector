@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "object-store-connector"
+version = "0.1.0"
+description = ""
+authors = ["Ravi Mula <ravismula@users.noreply.github.com>"]
+readme = "README.md"
+
+packages = [
+    { include = "object_store_connector", from = ".", format = "sdist" },
+]
+
+include = [
+    "requirements.txt",
+    "libs/*.jar",
+    "ui-config.json",
+    "metadata.json",
+    "alerts.yaml",
+    "metrics.yaml"
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+boto3 = "^1.34.82"
+coverage = "^7.5.0"
+obsrv = {extras = ["batch"], git = "https://github.com/Sanketika-Obsrv/obsrv-python-sdk.git"}
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+coverage = "^7.4.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+package = "scripts.build_dist:main"

@@ -1,0 +1,21 @@
+postgres:
+  dbname: obsrv
+  user: postgres
+  password: postgres
+  host: localhost
+  port: 5432
+
+kafka:
+  broker-servers: localhost:9092
+  telemetry-topic: obsrv-connectors-telemetry
+  connector-metrics-topic: obsrv-connectors-metrics
+  producer:
+    compression: snappy
+    max-request-size: 1000000 # 1MB {1M: 1000000, 10M: 10000000, 5M: 5000000}
+
+obsrv_encryption_key: strong_encryption_key_to_encrypt
+
+connector_instance_id: s3.new-york-taxi-data.1
+
+building-block: rv-test
+env: local
