@@ -13,6 +13,8 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
 
 from models.object_info import ObjectInfo
+from provider.azure import AzureBlobStorage
+from provider.gcs import GCS
 from provider.s3 import S3
 
 logger = LoggerController(__name__)
@@ -59,6 +61,10 @@ class ObjectStoreConnector(ISourceConnector):
     def _get_provider(self, connector_config: Dict[Any, Any]):
         if connector_config["source_type"] == "s3":
             self.provider = S3(connector_config)
+        elif connector_config["source"]["type"] == "azure_blob":
+            self.provider = AzureBlobStorage(connector_config)
+        elif connector_config["source"]["type"] == "gcs":
+            self.provider = GCS(connector_config)
         else:
             ObsrvException(
                 ErrorData(
