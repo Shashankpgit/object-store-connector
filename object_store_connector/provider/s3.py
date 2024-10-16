@@ -232,7 +232,7 @@ class S3(BlobProvider):
             "jsonl": ["json", "json.gz", "json.zip"],
             "csv": ["csv", "csv.gz", "csv.zip"],
         }
-        file_format = ctx.data_format
+        file_format = self.connector_config["source_data_format"]
         # metrics
         api_calls, errors = 0, 0
 
