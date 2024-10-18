@@ -99,7 +99,7 @@ class ObjectStoreConnector(ISourceConnector):
         self,
         sc: SparkSession,
         ctx: ConnectorContext,
-        connector_config: Dict[Any, Any]
+        connector_config: Dict[Any, Any],
         metrics_collector: MetricsCollector,
     ) -> Iterator[DataFrame]:
         num_files_processed = ctx.stats.get_stat("num_files_processed", 0)

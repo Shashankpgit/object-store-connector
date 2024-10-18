@@ -1,0 +1,174 @@
+{"schema": {
+  "title": "Connector Config",
+  "type": "object",
+  "properties": {
+    "source": {
+      "title": "Storage Source",
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "Storage type",
+          "fieldDescription": [
+            {
+              "type": "string",
+              "description": "Enter valid storage service type."
+            }
+          ],
+          "default": "s3",
+          "readOnly": true,
+          "enum": ["s3", "azure", "gcp"]
+        },
+        "bucket": {
+          "title": "Bucket Name",
+          "type": "string",
+          "minLength": 3,
+          "pattern": "(?!(^xn--|^sthree-|.+--ol-s3$|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
+          "default": "default-bucket-name",
+          "description": "Enter the Source Bucket Name.",
+          "fieldDescription": [
+            {
+              "type": "string",
+              "description": "Enter the Source Bucket Name."
+            }
+          ]
+        },
+        "credentials": {
+          "title": "Credentials",
+          "type": "object",
+          "fieldDescription": [{
+            "type": "string",
+            "description":  "It is recommended to create a new IAM user in AWS and assign the following policy that limits it to certain operations:"
+          }],
+          "properties": {
+            "access-key": {
+              "type": "string",
+              "title": "Access Key",
+              "pattern": "^(ASIA|AKIA|AROA|AIDA)([A-Z0-9]+)$",
+              "maxLength": 40,
+              "description": "Enter the Access Key.",
+              "fieldDescription": [{
+                "type": "string",
+                "description":  "Please enter your AWS Access Key. This key is a unique identifier that allows you to securely access and manage your AWS resources programmatically. You can find this key in your AWS Management Console under the IAM (Identity and Access Management) section."
+              }]
+            },
+            "secret-key": {
+              "type": "string",
+              "title": "Secret Key",
+              "pattern": "^[a-zA-Z0-9+/=]*$",
+              "maxLength": 20,
+              "description": "Enter the Secret Key.",
+              "fieldDescription": [{
+                "type": "string",
+                "description":  "Please provide your AWS Secret Key. This key works in conjunction with your Access Key and serves as a password to authenticate your requests. It is crucial to keep your Secret Key confidential to prevent unauthorized access to your AWS account."
+              }]
+            },
+            "region": {
+              "type": "string",
+              "title": "Region",
+              "description": "Choose a specific region from below.",
+              "enum": [
+                "us-east-1",
+                "us-east-2",
+                "us-west-1",
+                "us-west-2",
+                "ap-south-1",
+                "ap-northeast-1",
+                "ap-northeast-2",
+                "ap-northeast-3",
+                "ap-southeast-1",
+                "ap-southeast-2",
+                "ap-east-1",
+                "ap-southeast-3",
+                "ap-southeast-4",
+                "ca-central-1",
+                "eu-central-1",
+                "eu-west-1",
+                "eu-west-2",
+                "eu-west-3",
+                "eu-north-1",
+                "eu-south-1",
+                "eu-south-2",
+                "eu-central-2",
+                "sa-east-1",
+                "af-south-1",
+                "me-south-1",
+                "me-central-1",
+                "il-central-1"
+              ],
+              "fieldDescription": [{
+                "type": "string",
+                "description": ""
+              }]
+            }
+          }
+        },
+        "data_format": {
+          "title": "Data Format",
+          "type": "string",
+          "enum": ["json", "csv", "parquet"],
+          "default": "json",
+          "description": "Select the data format.",
+          "fieldDescription": [
+            {
+              "type": "string",
+              "description": "Select the data format."
+            }
+          ]
+        }
+      }
+    },
+    "operations-config": {
+      "title": "Operations Configuration",
+      "type": "object",
+      "properties": {
+        "polling-interval": {
+          "type": "string",
+          "title": "Polling Interval",
+          "enum": ["Once", "Periodic"],
+          "description": "Select a suitable polling interval.",
+          "fieldDescription": [{
+            "type": "string",
+            "description": "Depending on the batch-size and maximum-batches, select an appropriate schedule. A shorter schedule with a large batch-size and max-batches will result in parallel queries, which may result in more load on the database."
+          }]
+        }
+      },
+      "dependencies": {
+        "polling-interval": {
+          "oneOf": [
+            {
+              "properties": {
+                "polling-interval": {
+                  "enum": [
+                    "Periodic"
+                  ]
+                },
+                "schedule": {
+                  "type": "string",
+                  "title": "Schedule",
+                  "enum": ["Hourly", "Daily", "Weekly", "Monthly"],
+                  "fieldDescription": [{
+                    "type": "string",
+                    "description": "Select a appropriate schedule to run the connector."
+                  }]
+                }
+              },
+              "required": ["schedule"]
+            },
+            {
+              "properties": {
+                "polling-interval": {
+                  "enum": [
+                    "Once"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "required": ["source", "operations-config"]
+}
+}
