@@ -48,14 +48,22 @@
                       "title": "Access Key",
                       "pattern": "^(ASIA|AKIA|AROA|AIDA)([A-Z0-9]+)$",
                       "maxLength": 40,
-                      "description": "Enter the Access Key."
+                      "description": "Enter the Access Key.",
+                      "fieldDescription": [{
+                        "type": "string",
+                        "description":  "Please enter your AWS Access Key. This key is a unique identifier that allows you to securely access and manage your AWS resources programmatically. You can find this key in your AWS Management Console under the IAM (Identity and Access Management) section."
+                      }]
                     },
                     "secret-key": {
                       "type": "string",
                       "title": "Secret Key",
                       "pattern": "^[a-zA-Z0-9+/=]*$",
                       "maxLength": 20,
-                      "description": "Enter the Secret Key."
+                      "description": "Enter the Secret Key.",
+                      "fieldDescription": [{
+                        "type": "string",
+                        "description":  "Please provide your AWS Secret Key. This key works in conjunction with your Access Key and serves as a password to authenticate your requests. It is crucial to keep your Secret Key confidential to prevent unauthorized access to your AWS account."
+                      }]
                     },
                     "region": {
                       "type": "string",
@@ -96,6 +104,19 @@
                       }]
                     }
                   }
+                },
+                "data_format": {
+                  "title": "Data Format",
+                  "type": "string",
+                  "enum": ["json", "csv", "parquet"],
+                  "default": "json",
+                  "description": "Select the data format.",
+                  "fieldDescription": [
+                    {
+                      "type": "string",
+                      "description": "Select the data format."
+                    }
+                  ]
                 }
               }
             },
@@ -127,7 +148,11 @@
                         "schedule": {
                           "type": "string",
                           "title": "Schedule",
-                          "enum": ["Hourly", "Daily", "Weekly", "Monthly"]
+                          "enum": ["Hourly", "Daily", "Weekly", "Monthly"],
+                          "fieldDescription": [{
+                            "type": "string",
+                            "description": "Select a appropriate schedule to run the connector."
+                          }]
                         }
                       },
                       "required": ["schedule"]
