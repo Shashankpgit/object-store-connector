@@ -23,7 +23,7 @@ class S3(BlobProvider):
         self.prefix = (
             connector_config["source_prefix"]
             if "source_prefix" in connector_config
-            else "/"
+            else ""
         )
         self.obj_prefix = f"s3a://{self.bucket}/"
         self.s3_client = self._get_client()
