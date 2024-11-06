@@ -19,10 +19,9 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.12"
-boto3 = "^1.34.82"
-coverage = "^7.5.0"
-obsrv = {extras = ["batch"], git = "https://github.com/Sanketika-Obsrv/obsrv-python-sdk.git"}
+python = "^3.10"
+boto3 = "1.34.82"
+obsrv = {version = "0.1.1", extras = ["batch"]}
 
 
 [tool.poetry.group.dev.dependencies]
