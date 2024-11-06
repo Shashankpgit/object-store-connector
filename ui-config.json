@@ -11,7 +11,8 @@
         "minLength": 3,
         "pattern": "(?!(^xn--|^sthree-|.+--ol-s3$|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$",
         "description": "Enter S3 bucket name (e.g., my-data-bucket)",
-        "helptext": "<p><strong>Bucket Name:</strong> Enter the exact name of the S3 bucket where data is stored. The bucket name must be globally unique across all AWS regions and follow AWS naming conventions:</p><ul><li>Only lowercase letters, numbers, hyphens, and dots are allowed.</li><li>Must not start or end with a hyphen, and no consecutive periods.</li><li>Example: <em>my-data-bucket</em> or <em>data.backups.2024</em></li></ul><p>Ensure you have the necessary permissions to access the specified bucket.</p>"
+        "helptext": "<p><strong>Bucket Name:</strong> Enter the exact name of the S3 bucket where data is stored. The bucket name must be globally unique across all AWS regions and follow AWS naming conventions:</p><ul><li>Only lowercase letters, numbers, hyphens, and dots are allowed.</li><li>Must not start or end with a hyphen, and no consecutive periods.</li><li>Example: <em>my-data-bucket</em> or <em>data.backups.2024</em></li></ul><p>Ensure you have the necessary permissions to access the specified bucket.</p>",
+        "uiIndex": 1
       },
       "source_prefix":  {
         "title": "Folder Prefix",
@@ -19,7 +20,8 @@
         "pattern": "^([a-zA-Z0-9!_.*'()/ -]+\\/)*(\\*\\*\\/)?([a-zA-Z0-9!_.*'()/ -]+)?(\\.[a-zA-Z0-9]+)?$",
         "default": "",
         "description": "Enter folder prefix (e.g., folder-name/)",
-        "helptext": "<p><strong>Prefix:</strong> Specify the prefix to filter files in the S3 bucket.</p><ul><li>To select files only within a specific folder, use the folder name as the prefix (e.g., <em>folder-name/</em>).</li><li>To include all files in subfolders, use a prefix that matches the root folder (e.g., <em>data-folder/</em> will include all files within <em>data-folder</em> and its subdirectories).</li><li>Leave it blank to include all files in the bucket.</li></ul>"
+        "helptext": "<p><strong>Prefix:</strong> Specify the prefix to filter files in the S3 bucket.</p><ul><li>To select files only within a specific folder, use the folder name as the prefix (e.g., <em>folder-name/</em>).</li><li>To include all files in subfolders, use a prefix that matches the root folder (e.g., <em>data-folder/</em> will include all files within <em>data-folder</em> and its subdirectories).</li><li>Leave it blank to include all files in the bucket.</li></ul>",
+        "uiIndex": 2
       },
       "source_credentials_access_key": {
         "type": "string",
@@ -28,7 +30,8 @@
         "maxLength": 40,
         "format": "password",
         "description": "Enter AWS Access Key ID",
-        "helptext": "<p><strong>Access Key:</strong> Enter the AWS Access Key ID associated with your IAM user. For security:</p><ul><li>Use an IAM user specifically created for this connection, not a root account.</li><li>Grant this user only the necessary permissions, such as <em>s3:ListBucket</em> and <em>s3:GetObject</em> for the specific bucket.</li><li>Rotate keys periodically and avoid hardcoding them in code files.</li></ul><p>For more details, refer to the <a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html\" target=\"_blank\">AWS IAM best practices</a>.</p>"
+        "helptext": "<p><strong>Access Key:</strong> Enter the AWS Access Key ID associated with your IAM user. For security:</p><ul><li>Use an IAM user specifically created for this connection, not a root account.</li><li>Grant this user only the necessary permissions, such as <em>s3:ListBucket</em> and <em>s3:GetObject</em> for the specific bucket.</li><li>Rotate keys periodically and avoid hardcoding them in code files.</li></ul><p>For more details, refer to the <a href=\"https://docs.aws.amazon.com/IAM/latest/UserGuide/best-practices.html\" target=\"_blank\">AWS IAM best practices</a>.</p>",
+        "uiIndex": 3
       },
       "source_credentials_secret_key": {
         "type": "string",
@@ -37,7 +40,8 @@
         "maxLength": 20,
         "format": "password",
         "description": "Enter AWS Secret Access Key",
-        "helptext": "<p><strong>Secret Key:</strong> Enter the AWS Secret Access Key for the IAM user. For security:</p><ul><li>Use this key only with the associated <em>Access Key</em> and limit permissions to essential actions (e.g., <em>s3:ListBucket</em> and <em>s3:GetObject</em> on the target bucket).</li><li>Keep the secret key secure and avoid sharing it or hardcoding it directly in code files.</li><li>Rotate this key periodically and immediately revoke any compromised keys.</li></ul>"
+        "helptext": "<p><strong>Secret Key:</strong> Enter the AWS Secret Access Key for the IAM user. For security:</p><ul><li>Use this key only with the associated <em>Access Key</em> and limit permissions to essential actions (e.g., <em>s3:ListBucket</em> and <em>s3:GetObject</em> on the target bucket).</li><li>Keep the secret key secure and avoid sharing it or hardcoding it directly in code files.</li><li>Rotate this key periodically and immediately revoke any compromised keys.</li></ul>",
+        "uiIndex": 4
       },
       "source_credentials_region": {
         "type": "string",
@@ -73,7 +77,8 @@
           "me-central-1",
           "il-central-1"
         ],
-        "helptext": "<p><strong>Region:</strong> Select the AWS region where your S3 bucket is located. Choosing the correct region improves data access efficiency and minimizes latency. Common regions include:</p><ul><li><em>us-east-1</em> (N. Virginia)</li><li><em>us-west-2</em> (Oregon)</li><li><em>eu-central-1</em> (Frankfurt)</li></ul><p>For a complete list, refer to the <a href=\"https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region\" target=\"_blank\">AWS region documentation</a>.</p>"
+        "helptext": "<p><strong>Region:</strong> Select the AWS region where your S3 bucket is located. Choosing the correct region improves data access efficiency and minimizes latency. Common regions include:</p><ul><li><em>us-east-1</em> (N. Virginia)</li><li><em>us-west-2</em> (Oregon)</li><li><em>eu-central-1</em> (Frankfurt)</li></ul><p>For a complete list, refer to the <a href=\"https://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region\" target=\"_blank\">AWS region documentation</a>.</p>",
+        "uiIndex": 5
       },
       "source_data_format": {
         "title": "Data Format",
@@ -86,13 +91,15 @@
         ],
         "default": "json",
         "description": "Select data format (e.g., json)",
-        "helptext": "<p><strong>Data Format:</strong> Select the format of the data stored in the S3 bucket. Supported formats:</p><ul><li><strong>JSON:</strong> Standard JSON format, typically one object per file.<code>{<br/>&nbsp;&nbsp;\"id\": 1,<br/>&nbsp;&nbsp;\"name\": \"Alice\",<br/>&nbsp;&nbsp;\"email\": \"abc@xyz.com\"<br/>}</code></li><li><strong>JSONL:</strong> JSON Lines format with one JSON object per line, suitable for large datasets.<code>{\"id\": 1, \"name\": \"Alice\", \"email\": \"alice@example.com\"}<br/>{\"id\": 2, \"name\": \"Bob\", \"email\": \"bob@example.com\"}</code></li><li><strong>Parquet:</strong> A binary, columnar format optimized for efficient storage. Not human-readable.</li><li><strong>CSV:</strong> Comma-separated values format for tabular data.<code>id,name,email<br/>1,Alice,alice@example.com<br/>2,Bob,bob@example.com</code></li></ul><p>Select the format that matches the data files in the bucket.</p>"
+        "helptext": "<p><strong>Data Format:</strong> Select the format of the data stored in the S3 bucket. Supported formats:</p><ul><li><strong>JSON:</strong> Standard JSON format, typically one object per file.<code>{<br/>&nbsp;&nbsp;\"id\": 1,<br/>&nbsp;&nbsp;\"name\": \"Alice\",<br/>&nbsp;&nbsp;\"email\": \"abc@xyz.com\"<br/>}</code></li><li><strong>JSONL:</strong> JSON Lines format with one JSON object per line, suitable for large datasets.<code>{\"id\": 1, \"name\": \"Alice\", \"email\": \"alice@example.com\"}<br/>{\"id\": 2, \"name\": \"Bob\", \"email\": \"bob@example.com\"}</code></li><li><strong>Parquet:</strong> A binary, columnar format optimized for efficient storage. Not human-readable.</li><li><strong>CSV:</strong> Comma-separated values format for tabular data.<code>id,name,email<br/>1,Alice,alice@example.com<br/>2,Bob,bob@example.com</code></li></ul><p>Select the format that matches the data files in the bucket.</p>",
+        "uiIndex": 6
       },
       "source_type": {
         "type": "string",
         "title": "Storage type",
         "default": "s3",
-        "format": "hidden"
+        "format": "hidden",
+        "uiIndex": 7
       }
     },
     "required": [
