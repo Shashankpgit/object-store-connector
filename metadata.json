@@ -6,7 +6,7 @@
         "version": "0.1.0",
         "tenant": "multiple",
         "type": "source",
-        "category": "File",
+        "category": "batch",
         "description": "The Object Store Connector is used to move data from any Object Store to the Obsrv",
         "technology": "python",
         "runtime": "spark",
