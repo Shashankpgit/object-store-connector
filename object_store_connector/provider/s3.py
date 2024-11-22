@@ -239,7 +239,8 @@ class S3(BlobProvider):
         labels = [
             {"key": "request_method", "value": "GET"},
             {"key": "method_name", "value": "ListObjectsV2"},
-            {"key": "object_path", "value": ""}
+            {"key": "object_path", "value": ""},
+            {"key": "error_code", "value": ""}
         ]
 
         while True:
