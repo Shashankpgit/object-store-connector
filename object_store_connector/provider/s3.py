@@ -136,7 +136,7 @@ class S3(BlobProvider):
                     f"failed to update tags in S3 for object: {str(exception)}",
                 )
             )
-        
+
         labels = [
             {"key": "request_method", "value": "PUT"},
             {"key": "method_name", "value": "setObjectTagging"},
@@ -197,7 +197,7 @@ class S3(BlobProvider):
                     "S3_READ_ERROR", f"failed to read object from S3: {str(exception)}"
                 )
             )
-        
+
         labels = [
             {"key": "request_method", "value": "GET"},
             {"key": "method_name", "value": "getObject"},
@@ -226,6 +226,7 @@ class S3(BlobProvider):
             "json": ["json", "json.gz", "json.zip"],
             "jsonl": ["json", "json.gz", "json.zip"],
             "csv": ["csv", "csv.gz", "csv.zip"],
+            "parquet": ["parquet", "parquet.gz", "parquet.zip"],
         }
         file_format = self.connector_config["source_data_format"]
         # metrics
@@ -245,8 +246,10 @@ class S3(BlobProvider):
                         Bucket=bucket_name, Prefix=prefix
                     )
                 api_calls += 1
+                if objects.get("Contents") is None:
+                    break
                 for obj in objects["Contents"]:
-                    if any(obj["Key"].endswith(f) for f in file_formats[file_format]):
+                    if file_format in file_formats and any(obj["Key"].endswith(f) for f in file_formats[file_format]):
                         summaries.append(obj)
                 if not objects.get("IsTruncated"):
                     break
