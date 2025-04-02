@@ -23,7 +23,7 @@ class S3(BlobProvider):
         self.prefix = (
             connector_config["source_prefix"]
             if "source_prefix" in connector_config
-            else "/"
+            else ""
         )
         self.obj_prefix = f"s3a://{self.bucket}/"
         self.s3_client = self._get_client()
@@ -77,44 +77,40 @@ class S3(BlobProvider):
         self, object_path: str, metrics_collector: MetricsCollector
     ) -> List[Tag]:
         bucket_name = self.bucket
-        labels = [
-            {"key": "request_method", "value": "GET"},
-            {"key": "method_name", "value": "getObjectTagging"},
-            {"key": "object_path", "value": object_path},
-        ]
-
+        error_code = ""
+        fetched_tags = []
         api_calls, errors = 0, 0
         try:
             tags_response = self.s3_client.get_object_tagging(
                 Bucket=bucket_name, Key=object_path
             )
             api_calls += 1
-            metrics_collector.collect("num_api_calls", api_calls, addn_labels=labels)
             tags = tags_response.get("TagSet", [])
-            return [Tag(tag["Key"], tag["Value"]) for tag in tags]
+            fetched_tags = [Tag(tag["Key"], tag["Value"]) for tag in tags]
         except (BotoCoreError, ClientError) as exception:
             errors += 1
-            labels += [
-                {"key": "error_code", "value": str(exception.response["Error"]["Code"])}
-            ]
-            metrics_collector.collect("num_errors", errors, addn_labels=labels)
+            error_code = str(exception.response["Error"]["Code"])
             ObsrvException(
                 ErrorData(
                     "S3_TAG_READ_ERROR",
                     f"failed to fetch tags from S3: {str(exception)}",
                 )
             )
+        labels = [
+            {"key": "request_method", "value": "GET"},
+            {"key": "method_name", "value": "getObjectTagging"},
+            {"key": "object_path", "value": object_path},
+            {"key": "error_code", "value": error_code}
+        ]
+        metrics_collector.collect({"num_api_calls": api_calls, "num_errors": errors}, addn_labels=labels)
+        return fetched_tags
 
     def update_tag(
         self, object: ObjectInfo, tags: list, metrics_collector: MetricsCollector
     ) -> bool:
-        labels = [
-            {"key": "request_method", "value": "PUT"},
-            {"key": "method_name", "value": "setObjectTagging"},
-            {"key": "object_path", "value": object.get("location")},
-        ]
         api_calls, errors = 0, 0
-
+        error_code = ""
+        is_tag_updated = False
         stripped_file_path = object.get("location").lstrip("s3a://")
         bucket_name, object_key = stripped_file_path.split("/", 1)
 
@@ -130,21 +126,25 @@ class S3(BlobProvider):
             self.s3_client.put_object_tagging(
                 Bucket=bucket_name, Key=object_key, Tagging={"TagSet": updated_tags}
             )
-            metrics_collector.collect("num_api_calls", api_calls, addn_labels=labels)
-            return True
+            is_tag_updated = True
         except (BotoCoreError, ClientError) as exception:
             errors += 1
-            labels += [
-                {"key": "error_code", "value": str(exception.response["Error"]["Code"])}
-            ]
-            metrics_collector.collect("num_errors", errors, addn_labels=labels)
+            error_code = str(exception.response["Error"]["Code"])
             ObsrvException(
                 ErrorData(
                     "S3_TAG_UPDATE_ERROR",
                     f"failed to update tags in S3 for object: {str(exception)}",
                 )
             )
-            return False
+
+        labels = [
+            {"key": "request_method", "value": "PUT"},
+            {"key": "method_name", "value": "setObjectTagging"},
+            {"key": "object_path", "value": object.get("location")},
+            {"key": "error_code", "value": error_code}
+        ]
+        metrics_collector.collect({"num_api_calls": api_calls, "num_errors": errors}, addn_labels=labels)
+        return is_tag_updated
 
     def fetch_objects(
         self, ctx: ConnectorContext, metrics_collector: MetricsCollector
@@ -169,12 +169,9 @@ class S3(BlobProvider):
         metrics_collector: MetricsCollector,
         file_format: str,
     ) -> DataFrame:
-        labels = [
-            {"key": "request_method", "value": "GET"},
-            {"key": "method_name", "value": "getObject"},
-            {"key": "object_path", "value": object_path},
-        ]
         api_calls, errors, records_count = 0, 0, 0
+        error_code = ""
+        df = None
         try:
             df = super().read_file(
                 objectPath=object_path,
@@ -184,33 +181,31 @@ class S3(BlobProvider):
             )
             records_count = df.count()
             api_calls += 1
-            metrics_collector.collect(
-                {"num_api_calls": api_calls, "num_records": records_count},
-                addn_labels=labels,
-            )
-            return df
         except (BotoCoreError, ClientError) as exception:
             errors += 1
-            labels += [
-                {"key": "error_code", "value": str(exception.response["Error"]["Code"])}
-            ]
-            metrics_collector.collect("num_errors", errors, addn_labels=labels)
+            error_code = str(exception.response["Error"]["Code"])
             ObsrvException(
                 ErrorData(
                     "S3_READ_ERROR", f"failed to read object from S3: {str(exception)}"
                 )
             )
-            return None
         except Exception as exception:
             errors += 1
-            labels += [{"key": "error_code", "value": "S3_READ_ERROR"}]
-            metrics_collector.collect("num_errors", errors, addn_labels=labels)
+            error_code = "S3_READ_ERROR"
             ObsrvException(
                 ErrorData(
                     "S3_READ_ERROR", f"failed to read object from S3: {str(exception)}"
                 )
             )
-            return None
+
+        labels = [
+            {"key": "request_method", "value": "GET"},
+            {"key": "method_name", "value": "getObject"},
+            {"key": "object_path", "value": object_path},
+            {"key": "error_code", "value": error_code}
+        ]
+        metrics_collector.collect({"num_api_calls": api_calls, "num_errors": errors}, addn_labels=labels)
+        return df
 
     def _get_client(self):
         session = boto3.Session(
@@ -231,15 +226,12 @@ class S3(BlobProvider):
             "json": ["json", "json.gz", "json.zip"],
             "jsonl": ["json", "json.gz", "json.zip"],
             "csv": ["csv", "csv.gz", "csv.zip"],
+            "parquet": ["parquet", "parquet.gz", "parquet.zip"],
         }
-        file_format = ctx.data_format
+        file_format = self.connector_config["source_data_format"]
         # metrics
         api_calls, errors = 0, 0
-
-        labels = [
-            {"key": "request_method", "value": "GET"},
-            {"key": "method_name", "value": "ListObjectsV2"},
-        ]
+        error_code = ""
 
         while True:
             try:
@@ -254,29 +246,32 @@ class S3(BlobProvider):
                         Bucket=bucket_name, Prefix=prefix
                     )
                 api_calls += 1
+                if objects.get("Contents") is None:
+                    break
                 for obj in objects["Contents"]:
-                    if any(obj["Key"].endswith(f) for f in file_formats[file_format]):
+                    if file_format in file_formats and any(obj["Key"].endswith(f) for f in file_formats[file_format]):
                         summaries.append(obj)
                 if not objects.get("IsTruncated"):
                     break
                 continuation_token = objects.get("NextContinuationToken")
             except (BotoCoreError, ClientError) as exception:
                 errors += 1
-                labels += [
-                    {
-                        "key": "error_code",
-                        "value": str(exception.response["Error"]["Code"]),
-                    }
-                ]
-                metrics_collector.collect("num_errors", errors, addn_labels=labels)
+                error_code = str(exception.response["Error"]["Code"])
                 ObsrvException(
                     ErrorData(
                         "AWS_S3_LIST_ERROR",
                         f"failed to list objects in S3: {str(exception)}",
                     )
                 )
+                break
 
-        metrics_collector.collect("num_api_calls", api_calls, addn_labels=labels)
+        labels = [
+            {"key": "request_method", "value": "GET"},
+            {"key": "method_name", "value": "ListObjectsV2"},
+            {"key": "object_path", "value": ""},
+            {"key": "error_code", "value": error_code}
+        ]
+        metrics_collector.collect({"num_api_calls": api_calls, "num_errors": errors}, addn_labels=labels)
         return summaries
 
     def _get_spark_session(self):

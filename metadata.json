@@ -6,8 +6,8 @@
         "version": "0.1.0",
         "tenant": "multiple",
         "type": "source",
-        "category": "File",
-        "description": "The Object Store Connector is used to move data from any Object Store to the Obsrv platform",
+        "category": "batch",
+        "description": "The Object Store Connector is used to move data from any Object Store to the Obsrv",
         "technology": "python",
         "runtime": "spark",
         "licence": "MIT",
@@ -19,61 +19,8 @@
         {
             "id": "aws-s3-connector",
             "name": "AWS S3",
-            "description": "The AWS S3 Connector is used to move data from any S3 Bucket to the Obsrv platform",
-            "icon": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Amazon-S3-Logo.svg",
-            "config": {
-                "source": {
-                    "type": "s3",
-                    "bucket": "",
-                    "prefix": "",
-                    "prefix_format": "%y/%m/%d/%H",
-                    "credentials": {
-                        "access_key": "",
-                        "secret_key": "",
-                        "region": ""
-                    },
-                    "max_retries": "<int>"
-                }
-            }
-        },
-        {
-            "id": "azure-blob-connector",
-            "name": "Azure Blob Store",
-            "description": "The Azure Blob Store Connector is used to move data from any Azure Blob Container to the Obsrv platform",
-            "icon": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Microsoft_Azure.svg",
-            "config": {
-                "source": {
-                    "type": "azure_blob",
-                    "container": "",
-                    "prefix": "",
-                    "prefix_format": "%y/%m/%d/%H",
-                    "credentials": {
-                        "account_name": "",
-                        "account_key": ""
-                    },
-                    "max_retries": "<int>"
-                }
-            }
-        },
-        {
-            "id": "gcs-connector",
-            "name": "Google Cloud Storage",
-            "description": "The GCS Connector is used to move data from any Google Bucket to the Obsrv platform",
-            "icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Google_Cloud_logo.svg/512px-Google_Cloud_logo.svg.png",
-            "config": {
-                "source": {
-                    "type": "gcs",
-                    "bucket": "",
-                    "prefix": "",
-                    "prefix_format": "%y/%m/%d/%H",
-                    "credentials": {
-                        "project_id": "",
-                        "client_email": "",
-                        "private_key": ""
-                    }
-                },
-                "max_retries": "<int>"
-            }
+            "description": "The AWS S3 Connector is used to move data from any S3 Bucket to the Obsrv",
+            "icon": "s3.svg"
         }
     ]
 }

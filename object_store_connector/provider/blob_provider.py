@@ -3,6 +3,8 @@ from typing import Any, Dict, List, final
 
 from obsrv.connector import MetricsCollector
 from pyspark.sql import DataFrame, SparkSession
+from obsrv.common import ObsrvException
+from obsrv.models import ErrorData
 
 from models.object_info import ObjectInfo, Tag
 

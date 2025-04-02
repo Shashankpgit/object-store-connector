@@ -15,7 +15,8 @@ include = [
     "ui-config.json",
     "metadata.json",
     "alerts.yaml",
-    "metrics.yaml"
+    "metrics.yaml",
+    "s3.svg"
 ]
 
 [tool.poetry.dependencies]

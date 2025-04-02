@@ -44,7 +44,7 @@ class ObjectStoreConnector(ISourceConnector):
         )
         self._get_provider(connector_config)
         self._get_objects_to_process(ctx, metrics_collector)
-        for res in self._process_objects(sc, ctx, metrics_collector):
+        for res in self._process_objects(sc, ctx, connector_config, metrics_collector):
             yield res
 
         last_run_time = datetime.datetime.now()
@@ -105,6 +105,7 @@ class ObjectStoreConnector(ISourceConnector):
         self,
         sc: SparkSession,
         ctx: ConnectorContext,
+        connector_config: Dict[Any, Any],
         metrics_collector: MetricsCollector,
     ) -> Iterator[DataFrame]:
         num_files_processed = ctx.stats.get_stat("num_files_processed", 0)
@@ -115,7 +116,7 @@ class ObjectStoreConnector(ISourceConnector):
                 obj.get("location"),
                 sc=sc,
                 metrics_collector=metrics_collector,
-                file_format=ctx.data_format,
+                file_format=connector_config["source_data_format"],
             )
 
             if df is None:
