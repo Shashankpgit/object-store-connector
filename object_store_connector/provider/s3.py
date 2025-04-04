@@ -10,14 +10,20 @@ from obsrv.models import ErrorData
 from pyspark.conf import SparkConf
 from pyspark.sql import DataFrame, SparkSession
 
-from models.object_info import ObjectInfo, Tag
-from provider.blob_provider import BlobProvider
+from object_store_connector.models.object_info import ObjectInfo, Tag
+from object_store_connector.provider.blob_provider import BlobProvider
 
 
 class S3(BlobProvider):
     def __init__(self, connector_config) -> None:
         super().__init__()
         self.connector_config = connector_config
+        self.endpoint_url = "s3.amazonaws.com"
+        self.is_s3_client = True
+        endpoint = connector_config.get("source_credentials_endpoint", None)
+        if endpoint is not None:
+            self.endpoint_url = f"http://{connector_config["source_credentials_endpoint"]}"
+            self.is_s3_client = False
         self.bucket = connector_config["source_bucket"]
         # self.prefix = connector_config.get('prefix', '/') # TODO: Implement partitioning support
         self.prefix = (
@@ -53,7 +59,8 @@ class S3(BlobProvider):
         conf.set(
             "spark.hadoop.fs.s3a.retry.interval", "500ms"
         )  # Set retry interval for S3 operations
-        conf.set("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com")  # Set S3 endpoint
+        conf.set("spark.hadoop.fs.s3a.endpoint", self.endpoint_url)
+        conf.set("spark.hadoop.fs.s3a.path.style.access", "true")
         conf.set(
             "spark.hadoop.fs.s3a.multiobjectdelete.enable", "false"
         )  # Disable multiobject delete
@@ -126,6 +133,7 @@ class S3(BlobProvider):
             self.s3_client.put_object_tagging(
                 Bucket=bucket_name, Key=object_key, Tagging={"TagSet": updated_tags}
             )
+            api_calls += 1
             is_tag_updated = True
         except (BotoCoreError, ClientError) as exception:
             errors += 1
@@ -215,7 +223,9 @@ class S3(BlobProvider):
             ],
             region_name=self.connector_config["source_credentials_region"],
         )
-        return session.client("s3")
+        if self.is_s3_client is True:
+            return session.client("s3")
+        return session.client("s3", endpoint_url=self.endpoint_url)
 
     def _list_objects(self, ctx: ConnectorContext, metrics_collector) -> list:
         bucket_name = self.connector_config["source_bucket"]

@@ -2,8 +2,8 @@ from azure.core.exceptions import AzureError
 from typing import Dict, List, Any
 from azure.storage.blob import ContainerClient, BlobClient
 from pyspark.sql import DataFrame, SparkSession
-from provider.blob_provider import BlobProvider
-from models.object_info import ObjectInfo,Tag
+from object_store_connector.provider.blob_provider import BlobProvider
+from object_store_connector.models.object_info import ObjectInfo, Tag
 from pyspark.conf import SparkConf
 from obsrv.job.batch import get_base_conf
 from obsrv.connector import ConnectorContext, MetricsCollector

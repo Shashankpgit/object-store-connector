@@ -12,10 +12,10 @@ from pyspark.conf import SparkConf
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
 
-from models.object_info import ObjectInfo
-from provider.azure import AzureBlobStorage
-from provider.gcs import GCS
-from provider.s3 import S3
+from object_store_connector.models.object_info import ObjectInfo
+from object_store_connector.provider.azure import AzureBlobStorage
+from object_store_connector.provider.gcs import GCS
+from object_store_connector.provider.s3 import S3
 
 logger = LoggerController(__name__)
 
@@ -141,7 +141,7 @@ class ObjectStoreConnector(ISourceConnector):
                     metrics_collector=metrics_collector,
                 ):
                     break
-                ctx.state.put_state("to_process", self.objects[i + 1 :])
+                ctx.state.put_state("to_process", self.objects[i + 1:])
                 ctx.state.save_state()
                 num_files_processed += 1
                 ctx.stats.put_stat("num_files_processed", num_files_processed)

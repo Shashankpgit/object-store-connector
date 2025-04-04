@@ -4,14 +4,14 @@ from pyspark.sql import DataFrame
 from typing import List
 from uuid import uuid4
 from pyspark.conf import SparkConf
-from models.object_info import Tag,ObjectInfo
+from object_store_connector.models.object_info import Tag, ObjectInfo
 from obsrv.common import ObsrvException
 from pyspark.sql import SparkSession
-from obsrv.connector import MetricsCollector,ConnectorContext
+from obsrv.connector import MetricsCollector, ConnectorContext
 from obsrv.job.batch import get_base_conf
 from obsrv.models import ErrorData
 from google.api_core.exceptions import ClientError
-from provider.blob_provider import BlobProvider
+from object_store_connector.provider.blob_provider import BlobProvider
 import json
 import os
 
