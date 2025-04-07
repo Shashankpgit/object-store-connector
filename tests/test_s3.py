@@ -269,7 +269,7 @@ class TestBatchConnector(unittest.TestCase):
 
         obj_count = 1
         records_per_obj = 200
-        expected_records = obj_count * records_per_obj
+        expected_record_count = obj_count * records_per_obj
 
         # Postgres asserts
         assert connector_stats["num_files_discovered"] == obj_count
@@ -311,17 +311,32 @@ class TestBatchConnector(unittest.TestCase):
 
         print(f"ListObjectsV2 requests: {api_calls_ListObjectsV2}, errors: {errors_ListObjectsV2}")
         print(f"getObjectTagging requests: {api_calls_getObjectTagging}, errors: {errors_getObjectTagging}")
-        print(f"getObjectTagging requests: {api_calls_getObjectTagging}, errors: {errors_getObject}")
+        print(f"getObject requests: {api_calls_getObject}, errors: {errors_getObject}")
         print(f"setObjectTagging requests: {api_calls_setObjectTagging}, errors: {errors_setObjectTagging}")
+        print(f"Total exec time: {metrics[-1]["edata"]["metric"]["total_exec_time_ms"]}")
+        print(f"Framework exec time: {metrics[-1]["edata"]["metric"]["fw_exec_time_ms"]}")
+        print(f"Connector exec time: {metrics[-1]["edata"]["metric"]["connector_exec_time_ms"]}")
+
+        # Api call count asserts
+        assert api_calls_getObjectTagging   \
+            == api_calls_getObject          \
+            == api_calls_setObjectTagging   \
+            == obj_count
+
+        # Number of times metrics_collector.collect() should be called
+        # SDK => 1 execution metric, connector => 1 num_objects_discovered metric, so + 2
+        expected_metric_count = api_calls_ListObjectsV2 + 3 * obj_count + 2
 
         # Kafka asserts
-        assert kafka_consumer.end_offsets([trt_consumer]) == {trt_consumer: expected_records}
-        assert kafka_consumer.end_offsets([tmt_consumer]) == {tmt_consumer: 6}
+        assert kafka_consumer.end_offsets([trt_consumer]) == {trt_consumer: expected_record_count}
+        assert kafka_consumer.end_offsets([tmt_consumer]) == {tmt_consumer: expected_metric_count}
 
         # Objects discovered metrics
-        assert metrics[obj_count + 1]["edata"]["metric"]["new_objects_discovered"] == obj_count
+        assert metrics[
+            int(api_calls_ListObjectsV2 + api_calls_getObjectTagging)
+        ]["edata"]["metric"]["new_objects_discovered"] == obj_count
 
         # Execution metrics
-        assert metrics[-1]["edata"]["metric"]["total_records_count"] == expected_records
-        assert metrics[-1]["edata"]["metric"]["success_records_count"] == expected_records
+        assert metrics[-1]["edata"]["metric"]["total_records_count"] == expected_record_count
+        assert metrics[-1]["edata"]["metric"]["success_records_count"] == expected_record_count
         assert metrics[-1]["edata"]["metric"]["failed_records_count"] == 0
