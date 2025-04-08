@@ -8,21 +8,14 @@ import psycopg2
 import psycopg2.extras
 import pytest
 
-from typing import Any, Dict, Iterable
-
 from kafka import KafkaConsumer, TopicPartition
-from pyspark.conf import SparkConf
-from pyspark.sql import DataFrame, SparkSession
 from minio import Minio
 from minio.error import S3Error
 from testcontainers.minio import MinioContainer
 
 from object_store_connector.connector import ObjectStoreConnector
-from obsrv.connector import ConnectorContext, MetricsCollector
 from obsrv.utils import EncryptionUtil, Config
-from obsrv.models import Metric
-from obsrv.connector.batch import ISourceConnector, SourceConnector
-from obsrv.job.batch import get_base_conf
+from obsrv.connector.batch import SourceConnector
 
 from tests.batch_setup import setup_obsrv_database  # noqa
 
@@ -44,6 +37,16 @@ def setup(request):
     })
     insert_connector(connector_config)
     init_minio(connector_config)
+
+    with open(
+        os.path.join(os.path.dirname(__file__), "config/config.yaml")
+    ) as config_file:
+        config = yaml.safe_load(config_file)
+        config["connector_instance_id"] = "s3.new-york-taxi-data.1"
+    with open(
+        os.path.join(os.path.dirname(__file__), "config/config.yaml"), "w"
+    ) as config_file:
+        yaml.dump(config, config_file)
 
     def cleanup():
         minio_container.stop()
@@ -200,26 +203,6 @@ def insert_connector(connector_config):
     conn.close()
 
 
-# class TestSource(ISourceConnector):
-#     def process(
-#         self,
-#         sc: SparkSession,
-#         ctx: ConnectorContext,
-#         connector_config: Dict[Any, Any],
-#         metrics_collector: MetricsCollector,
-#     ) -> Iterable[DataFrame]:
-#         df = sc.read.format("json").load("tests/sample_data/nyt_data_100.json.gz")
-#         yield df
-
-#         df1 = sc.read.format("json").load("tests/sample_data/nyt_data_100.json")
-
-#         yield df1
-
-#     def get_spark_conf(self, connector_config) -> SparkConf:
-#         conf = get_base_conf()
-#         return conf
-
-
 # @pytest.mark.usefixtures("setup_obsrv_database")
 class TestBatchConnector(unittest.TestCase):
     def test_source_connector(self):
@@ -231,7 +214,7 @@ class TestBatchConnector(unittest.TestCase):
 
         # These variables are currently hard coded
         test_raw_topic = "dev.ingest"
-        test_metrics_topic = "s3.metrics"
+        test_metrics_topic = "dev.metrics"
 
         kafka_consumer = KafkaConsumer(
             bootstrap_servers=config.find("kafka.broker-servers"),
@@ -261,7 +244,7 @@ class TestBatchConnector(unittest.TestCase):
             dbname=postgres_config["dbname"],
         )
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute("SELECT * FROM connector_instances;")
+        cur.execute(f"SELECT * FROM connector_instances WHERE id = '{config.find("connector_instance_id")}';")
         connector_instance = cur.fetchone()
         connector_state = connector_instance["connector_state"]
         connector_stats = connector_instance["connector_stats"]

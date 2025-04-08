@@ -7,8 +7,8 @@ postgres:
 
 kafka:
   broker-servers: localhost:9092
-  telemetry-topic: s3.telemetry
-  connector-metrics-topic: s3.metrics
+  telemetry-topic: dev.telemetry
+  connector-metrics-topic: dev.metrics
   # telemetry-topic: azure.telemetry
   # connector-metrics-topic: azure.metrics
   producer:

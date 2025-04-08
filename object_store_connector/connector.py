@@ -61,9 +61,9 @@ class ObjectStoreConnector(ISourceConnector):
     def _get_provider(self, connector_config: Dict[Any, Any]):
         if connector_config["source_type"] == "s3":
             self.provider = S3(connector_config)
-        elif connector_config["source"]["type"] == "azure_blob":
+        elif connector_config["source_type"] == "azure_blob":
             self.provider = AzureBlobStorage(connector_config)
-        elif connector_config["source"]["type"] == "gcs":
+        elif connector_config["source_type"] == "gcs":
             self.provider = GCS(connector_config)
         else:
             ObsrvException(

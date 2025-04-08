@@ -36,7 +36,7 @@ class S3(BlobProvider):
 
     def get_spark_config(self, connector_config) -> SparkConf:
         conf = get_base_conf()
-        conf.setAppName("ObsrvObjectStoreConnector")
+        conf.setAppName("AWSObjectStoreConnector")
         conf.set("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4")
         conf.set(
             "spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem"
