@@ -24,6 +24,7 @@ from tests.batch_setup import setup_obsrv_database  # noqa
 def setup(request):
     minio_container = MinioContainer("minio/minio:latest")
     minio_container.start()
+    connector_instance_id = "s3.new-york-taxi-data.1"
 
     connector_config = json.dumps({
         "source_prefix": "",
@@ -35,14 +36,14 @@ def setup(request):
         "source_credentials_access_key": minio_container.access_key,
         "source_credentials_endpoint": f"{minio_container.get_container_host_ip()}:{minio_container.get_exposed_port(9000)}"
     })
-    insert_connector(connector_config)
+    insert_connector(connector_config, connector_instance_id)
     init_minio(connector_config)
 
     with open(
         os.path.join(os.path.dirname(__file__), "config/config.yaml")
     ) as config_file:
         config = yaml.safe_load(config_file)
-        config["connector_instance_id"] = "s3.new-york-taxi-data.1"
+        config["connector_instance_id"] = connector_instance_id
     with open(
         os.path.join(os.path.dirname(__file__), "config/config.yaml"), "w"
     ) as config_file:
@@ -96,13 +97,14 @@ def init_minio(connector_config):
     return minio_client
 
 
-def insert_connector(connector_config):
+def insert_connector(connector_config, connector_instance_id):
     with open(
         os.path.join(os.path.dirname(__file__), "config/config.yaml"), "r"
     ) as config_file:
         config = yaml.safe_load(config_file)
 
     enc = EncryptionUtil(config["obsrv_encryption_key"])
+    enc_config = enc.encrypt(connector_config)
 
     ins_cr = """
         INSERT INTO connector_registry (
@@ -152,8 +154,6 @@ def insert_connector(connector_config):
         );
     """
 
-    enc_config = enc.encrypt(connector_config)
-
     ins_ci = """
         INSERT INTO connector_instances (
             id,
@@ -170,7 +170,7 @@ def insert_connector(connector_config):
             updated_date,
             published_date
         ) VALUES (
-            's3.new-york-taxi-data.1',
+            %s,
             'new-york-taxi-data',
             'aws-s3-connector-0.1.0',
             %s,
@@ -197,7 +197,7 @@ def insert_connector(connector_config):
     cur = conn.cursor()
 
     cur.execute(ins_cr)
-    cur.execute(ins_ci, (json.dumps(enc_config),))
+    cur.execute(ins_ci, (connector_instance_id, json.dumps(enc_config),))
 
     conn.commit()
     conn.close()
@@ -212,9 +212,8 @@ class TestBatchConnector(unittest.TestCase):
         self.assertEqual(os.path.exists(config_file_path), True)
         config = Config(config_file_path)
 
-        # These variables are currently hard coded
-        test_raw_topic = "dev.ingest"
-        test_metrics_topic = "dev.metrics"
+        test_raw_topic = "dev.ingest" # default topic from datasets table
+        test_metrics_topic = config.find("kafka.connector-metrics-topic")
 
         kafka_consumer = KafkaConsumer(
             bootstrap_servers=config.find("kafka.broker-servers"),

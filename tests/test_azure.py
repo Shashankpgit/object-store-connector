@@ -28,6 +28,7 @@ def setup(request):
     azurite_account_key = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
     azurite_endpoint = f"http://127.0.0.1:{azurite_container.get_exposed_port(10000)}/devstoreaccount1"
     azurite_conn_string = azurite_container.get_connection_string()
+    connector_instance_id = "azure.new-york-taxi-data.1"
 
     connector_config = json.dumps({
         "source_type": "azure_blob",
@@ -39,13 +40,13 @@ def setup(request):
         "source_prefix": "/",
         "source_data_format": "json"
     })
-    insert_connector(connector_config)
+    insert_connector(connector_config, connector_instance_id)
     init_azurite(connector_config)
     with open(
         os.path.join(os.path.dirname(__file__), "config/config.yaml")
     ) as config_file:
         config = yaml.safe_load(config_file)
-        config["connector_instance_id"] = "azure.new-york-taxi-data.1"
+        config["connector_instance_id"] = connector_instance_id
     with open(
         os.path.join(os.path.dirname(__file__), "config/config.yaml"), "w"
     ) as config_file:
@@ -95,7 +96,7 @@ def init_azurite(connector_config):
     return container_client
 
 
-def insert_connector(connector_config):
+def insert_connector(connector_config, connector_instance_id):
     with open(
         os.path.join(os.path.dirname(__file__), "config/config.yaml"), "r"
     ) as config_file:
@@ -168,7 +169,7 @@ def insert_connector(connector_config):
             updated_date,
             published_date
         ) VALUES (
-            'azure.new-york-taxi-data.1',
+            %s,
             'new-york-taxi-data',
             'azure-connector-0.1.0',
             %s,
@@ -195,7 +196,7 @@ def insert_connector(connector_config):
     cur = conn.cursor()
 
     cur.execute(ins_cr)
-    cur.execute(ins_ci, (json.dumps(enc_config),))
+    cur.execute(ins_ci, (connector_instance_id, json.dumps(enc_config),))
 
     conn.commit()
     conn.close()
@@ -211,8 +212,8 @@ class TestBatchConnector(unittest.TestCase):
         self.assertEqual(os.path.exists(config_file_path), True)
         config = Config(config_file_path)
 
-        test_raw_topic = "dev.ingest"
-        test_metrics_topic = "dev.metrics"
+        test_raw_topic = "dev.ingest" # default topic from datasets table
+        test_metrics_topic = config.find("kafka.connector-metrics-topic")
 
         kafka_consumer = KafkaConsumer(
             bootstrap_servers=config.find("kafka.broker-servers"),
@@ -297,9 +298,9 @@ class TestBatchConnector(unittest.TestCase):
         print(f"Connector exec time: {metrics[-1]["edata"]["metric"]["connector_exec_time_ms"]}")
 
         # Api call count asserts
-        assert api_calls_get_blob_tags   \
-            == api_calls_get_blob          \
-            == api_calls_set_blob_tags   \
+        assert api_calls_get_blob_tags  \
+            == api_calls_get_blob       \
+            == api_calls_set_blob_tags  \
             == obj_count
 
         # Number of times metrics_collector.collect() should be called
