@@ -93,7 +93,7 @@ class AzureBlobStorage(BlobProvider):
             )
         except Exception as exception:
             errors += 1
-            error_code = str(exception)
+            error_code = "AzureBlobStorage_READ_ERROR"
             ObsrvException(
                 ErrorData(
                     "AzureBlobStorage_READ_ERROR", f"failed to read object from AzureBlobStorage: {str(exception)}"

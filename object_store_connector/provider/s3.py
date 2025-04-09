@@ -227,8 +227,8 @@ class S3(BlobProvider):
             return session.client("s3")
         return session.client("s3", endpoint_url=self.endpoint_url)
 
-    def _list_objects(self, ctx: ConnectorContext, metrics_collector) -> list:
-        bucket_name = self.connector_config["source_bucket"]
+    def _list_objects(self, ctx: ConnectorContext, metrics_collector: MetricsCollector) -> list:
+        bucket_name = self.bucket
         prefix = self.prefix
         summaries = []
         continuation_token = None
