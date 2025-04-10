@@ -20,7 +20,7 @@ class GCS(BlobProvider):
     def __init__(self, connector_config) -> None:
         super().__init__()
         self.connector_config = connector_config
-        self.credentials = self.connector_config["source_credentials"]
+        self.credentials = {k[19:]: v for k, v in self.connector_config.items() if "source_credentials" in k}
         self.key_path = "/tmp/key.json"
         with open(self.key_path, "w") as f:
             f.write(json.dumps(self.credentials))
@@ -76,7 +76,7 @@ class GCS(BlobProvider):
 
         labels = [
             {"key": "request_method", "value": "GET"},
-            {"key": "method_name", "value": "getObjectMetadata"},
+            {"key": "method_name", "value": "getBlobMetadata"},
             {"key": "object_path", "value": object_path},
             {"key": "error_code", "value": error_code}
         ]
@@ -240,7 +240,7 @@ class GCS(BlobProvider):
 
         labels = [
             {"key": "request_method", "value": "GET"},
-            {"key": "method_name", "value": "ListBlobs"},
+            {"key": "method_name", "value": "listBlobs"},
             {"key": "object_path", "value": ""},
             {"key": "error_code", "value": error_code}
         ]
