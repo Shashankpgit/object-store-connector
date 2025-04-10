@@ -102,7 +102,7 @@ class AzureBlobStorage(BlobProvider):
 
         labels = [
             {"key": "request_method", "value": "GET"},
-            {"key": "method_name", "value": "get_blob"},
+            {"key": "method_name", "value": "getBlob"},
             {"key": "object_path", "value": object_path},
             {"key": "error_code", "value": error_code}
         ]
@@ -153,7 +153,7 @@ class AzureBlobStorage(BlobProvider):
 
         labels = [
             {"key": "request_method", "value": "GET"},
-            {"key": "method_name", "value": "list_blobs"},
+            {"key": "method_name", "value": "listBlobs"},
             {"key": "object_path", "value": ""},
             {"key": "error_code", "value": error_code}
         ]
@@ -188,7 +188,7 @@ class AzureBlobStorage(BlobProvider):
             )
         labels = [
             {"key": "request_method", "value": "GET"},
-            {"key": "method_name", "value": "get_blob_tags"},
+            {"key": "method_name", "value": "getBlobTags"},
             {"key": "object_path", "value": object_path},
             {"key": "error_code", "value": error_code}
         ]
@@ -226,7 +226,7 @@ class AzureBlobStorage(BlobProvider):
             )
         labels = [
             {"key": "request_method", "value": "PUT"},
-            {"key": "method_name", "value": "set_blob_tags"},
+            {"key": "method_name", "value": "setBlobTags"},
             {"key": "object_path", "value": object.get('location')},
             {"key": "error_code", "value": error_code}
         ]

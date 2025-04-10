@@ -272,27 +272,27 @@ class TestBatchConnector(unittest.TestCase):
             for d in metric["edata"]["labels"]:
                 if "method_name" != d["key"]:
                     continue
-                if d["value"] == "list_blobs":
+                if d["value"] == "listBlobs":
                     api_calls_list_blobs += metric["edata"]["metric"]["num_api_calls"]
                     errors_list_blobs += metric["edata"]["metric"]["num_errors"]
                     break
-                if d["value"] == "get_blob_tags":
+                if d["value"] == "getBlobTags":
                     api_calls_get_blob_tags += metric["edata"]["metric"]["num_api_calls"]
                     errors_get_blob_tags += metric["edata"]["metric"]["num_errors"]
                     break
-                if d["value"] == "get_blob":
+                if d["value"] == "getBlob":
                     api_calls_get_blob += metric["edata"]["metric"]["num_api_calls"]
                     errors_get_blob += metric["edata"]["metric"]["num_errors"]
                     break
-                if d["value"] == "set_blob_tags":
+                if d["value"] == "setBlobTags":
                     api_calls_set_blob_tags += metric["edata"]["metric"]["num_api_calls"]
                     errors_set_blob_tags += metric["edata"]["metric"]["num_errors"]
                     break
 
-        print(f"list_blobs requests: {api_calls_list_blobs}, errors: {errors_list_blobs}")
-        print(f"get_blob_tags requests: {api_calls_get_blob_tags}, errors: {errors_get_blob_tags}")
-        print(f"get_blob requests: {api_calls_get_blob}, errors: {errors_get_blob}")
-        print(f"set_blob_tags requests: {api_calls_set_blob_tags}, errors: {errors_set_blob_tags}")
+        print(f"listBlobs requests: {api_calls_list_blobs}, errors: {errors_list_blobs}")
+        print(f"getBlobTags requests: {api_calls_get_blob_tags}, errors: {errors_get_blob_tags}")
+        print(f"getBlob requests: {api_calls_get_blob}, errors: {errors_get_blob}")
+        print(f"setBlobTags requests: {api_calls_set_blob_tags}, errors: {errors_set_blob_tags}")
         print(f"Total exec time: {metrics[-1]["edata"]["metric"]["total_exec_time_ms"]}")
         print(f"Framework exec time: {metrics[-1]["edata"]["metric"]["fw_exec_time_ms"]}")
         print(f"Connector exec time: {metrics[-1]["edata"]["metric"]["connector_exec_time_ms"]}")
