@@ -21,7 +21,7 @@ class GCS(BlobProvider):
         super().__init__()
         self.connector_config = connector_config
         # self.credentials = {k[19:]: v for k, v in self.connector_config.items() if "source_credentials" in k}
-        self.credentials = connector_config["source_credentials"]
+        self.credentials = json.loads(connector_config["source_credentials"])
         self.key_path = "/tmp/key.json"
         with open(self.key_path, "w") as f:
             f.write(json.dumps(self.credentials))
