@@ -158,10 +158,10 @@
     },
     "required": [
       "source_type", "source_data_format", "source_bucket",
-      "source_credentials_service_account_json"
+      "source_credentials"
     ]
   },
-  "azure-blob-connector": {
+  "azure-connector": {
     "title": "Azure Blob Storage Connector Setup Instructions",
     "description": "Configure Azure Blob Storage Connector",
     "helptext": "Follow the instructions to fill in the required fields for connecting Azure Blob Storage.",
