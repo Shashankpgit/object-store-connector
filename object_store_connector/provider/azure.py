@@ -15,8 +15,8 @@ class AzureBlobStorage(BlobProvider):
     def __init__(self, connector_config: dict) -> None:
         super().__init__()
         self.connector_config = connector_config
-        self.account_name = connector_config["source_account_name"]
-        self.account_key = connector_config["source_account_key"]
+        self.account_name = connector_config["source_credentials_account_name"]
+        self.account_key = connector_config["source_credentials_account_key"]
         self.container_name = connector_config["source_container_name"]
         self.blob_endpoint = connector_config.get("source_blob_endpoint", None)
         self.prefix = connector_config.get("source_prefix", "/")

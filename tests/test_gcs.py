@@ -1,47 +1,32 @@
 import os
+
+import json
+import yaml
 import unittest
 
 import psycopg2
+import psycopg2.extras
 import pytest
-import yaml
-import json
 
-from azure.storage.blob import BlobServiceClient, ContentSettings
-from azure.core.exceptions import AzureError
 from kafka import KafkaConsumer, TopicPartition
-from testcontainers.azurite import AzuriteContainer
 
+from object_store_connector.connector import ObjectStoreConnector
 from obsrv.utils import EncryptionUtil, Config
 from obsrv.connector.batch import SourceConnector
 
-from object_store_connector.connector import ObjectStoreConnector
-
 from tests.batch_setup import setup_obsrv_database  # noqa
+
+# Import your gcs config here
+from stubs.obsrv_encrypt import gcs_config_new
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setup(request):
-    azurite_container = AzuriteContainer("mcr.microsoft.com/azure-storage/azurite:latest")
-    azurite_container.with_bind_ports(container=10000, host=10000)
-    azurite_container.start()
-    azurite_account_name = "devstoreaccount1"
-    azurite_account_key = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
-    azurite_endpoint = f"http://127.0.0.1:{azurite_container.get_exposed_port(10000)}/devstoreaccount1"
-    azurite_conn_string = azurite_container.get_connection_string()
-    connector_instance_id = "azure.new-york-taxi-data.1"
+    connector_instance_id = "gcs.new-york-taxi-data.1"
 
-    connector_config = json.dumps({
-        "source_type": "azure_blob",
-        "source_container_name": "testing-container",
-        "source_credentials_account_name": azurite_account_name,
-        "source_credentials_account_key": azurite_account_key,
-        "source_blob_endpoint": azurite_endpoint,
-        "source_connection_string": azurite_conn_string,
-        "source_prefix": "/",
-        "source_data_format": "json"
-    })
+    connector_config = json.dumps(gcs_config_new)
     insert_connector(connector_config, connector_instance_id)
-    init_azurite(connector_config)
+
     with open(
         os.path.join(os.path.dirname(__file__), "config/config.yaml")
     ) as config_file:
@@ -51,49 +36,6 @@ def setup(request):
         os.path.join(os.path.dirname(__file__), "config/config.yaml"), "w"
     ) as config_file:
         yaml.dump(config, config_file)
-
-    def cleanup():
-        azurite_container.stop()
-
-    request.addfinalizer(cleanup)
-
-
-def init_azurite(connector_config):
-    config = json.loads(connector_config)
-    connection_string = config["source_connection_string"]
-    container_name = config["source_container_name"]
-
-    blob_service_client = BlobServiceClient.from_connection_string(
-        connection_string
-    )
-
-    # Create Container
-    try:
-        container_client = blob_service_client.create_container(container_name)
-    except AzureError as e:
-        print(f"[ERROR] Error while creating AZURITE container: {e}")
-
-    object_name = "data.json"
-    file_path = "./stubs/events/chunk-4997.json"
-    content_settings = ContentSettings(content_type="application/json")
-
-    # Upload Objects
-    try:
-        with open(file_path, "rb") as data:
-            container_client.upload_blob(
-                name=object_name,
-                data=data,
-                content_settings=content_settings
-            )
-
-    except AzureError as e:
-        print(f"Error uploading {object_name} : {e}")
-    except FileNotFoundError:
-        print(f"File not found: {object_name}")
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-
-    return container_client
 
 
 def insert_connector(connector_config, connector_instance_id):
@@ -129,9 +71,9 @@ def insert_connector(connector_config, connector_instance_id):
             updated_date,
             live_date
         ) VALUES (
-            'azure-connector-0.1.0',
-            'azure-connector',
-            'Azure connector',
+            'gcs-connector-0.1.0',
+            'gcs-connector',
+            'GCS connector',
             'source',
             'batch',
             '0.1.0',
@@ -171,7 +113,7 @@ def insert_connector(connector_config, connector_instance_id):
         ) VALUES (
             %s,
             'new-york-taxi-data',
-            'azure-connector-0.1.0',
+            'gcs-connector-0.1.0',
             %s,
             '{}',
             'Live',
@@ -204,7 +146,6 @@ def insert_connector(connector_config, connector_instance_id):
 
 # @pytest.mark.usefixtures("setup_obsrv_database")
 class TestBatchConnector(unittest.TestCase):
-
     def test_source_connector(self):
         connector = ObjectStoreConnector()
         config_file_path = os.path.join(os.path.dirname(__file__), "config/config.yaml")
@@ -212,12 +153,12 @@ class TestBatchConnector(unittest.TestCase):
         self.assertEqual(os.path.exists(config_file_path), True)
         config = Config(config_file_path)
 
-        test_raw_topic = "dev.ingest" # default topic from datasets table
+        test_raw_topic = "dev.ingest"  # default topic from datasets table
         test_metrics_topic = config.find("kafka.connector-metrics-topic")
 
         kafka_consumer = KafkaConsumer(
             bootstrap_servers=config.find("kafka.broker-servers"),
-            group_id="azure-test-group",
+            group_id="s3-group",
             enable_auto_commit=True,
             auto_offset_reset='earliest'
         )
@@ -226,6 +167,8 @@ class TestBatchConnector(unittest.TestCase):
         tmt_consumer = TopicPartition(test_metrics_topic, 0)
 
         kafka_consumer.assign([trt_consumer, tmt_consumer])
+
+        # kafka_consumer.seek_to_beginning()
 
         SourceConnector.process(connector=connector, config_file_path=config_file_path)
 
@@ -247,7 +190,7 @@ class TestBatchConnector(unittest.TestCase):
         connector_stats = connector_instance["connector_stats"]
         conn.close
 
-        obj_count = 1
+        obj_count = 5
         records_per_obj = 200
         expected_record_count = obj_count * records_per_obj
 
@@ -264,11 +207,12 @@ class TestBatchConnector(unittest.TestCase):
                     metrics.append(json.loads(message.value))
 
         api_calls_list_blobs, errors_list_blobs = 0, 0
-        api_calls_get_blob_tags, errors_get_blob_tags = 0, 0
+        api_calls_get_blob_metadata, errors_get_blob_metadata = 0, 0
         api_calls_get_blob, errors_get_blob = 0, 0
-        api_calls_set_blob_tags, errors_set_blob_tags = 0, 0
+        api_calls_update_blob_metadata, errors_update_blob_metadata = 0, 0
 
         for metric in metrics:
+            print(f"[METRIC] {metric}")
             for d in metric["edata"]["labels"]:
                 if "method_name" != d["key"]:
                     continue
@@ -276,31 +220,23 @@ class TestBatchConnector(unittest.TestCase):
                     api_calls_list_blobs += metric["edata"]["metric"]["num_api_calls"]
                     errors_list_blobs += metric["edata"]["metric"]["num_errors"]
                     break
-                if d["value"] == "getBlobTags":
-                    api_calls_get_blob_tags += metric["edata"]["metric"]["num_api_calls"]
-                    errors_get_blob_tags += metric["edata"]["metric"]["num_errors"]
+                if d["value"] == "getBlobMetadata":
+                    api_calls_get_blob_metadata += metric["edata"]["metric"]["num_api_calls"]
+                    errors_get_blob_metadata += metric["edata"]["metric"]["num_errors"]
                     break
                 if d["value"] == "getBlob":
                     api_calls_get_blob += metric["edata"]["metric"]["num_api_calls"]
                     errors_get_blob += metric["edata"]["metric"]["num_errors"]
                     break
-                if d["value"] == "setBlobTags":
-                    api_calls_set_blob_tags += metric["edata"]["metric"]["num_api_calls"]
-                    errors_set_blob_tags += metric["edata"]["metric"]["num_errors"]
+                if d["value"] == "updateBlobMetadata":
+                    api_calls_update_blob_metadata += metric["edata"]["metric"]["num_api_calls"]
+                    errors_update_blob_metadata += metric["edata"]["metric"]["num_errors"]
                     break
 
-        print(f"listBlobs requests: {api_calls_list_blobs}, errors: {errors_list_blobs}")
-        print(f"getBlobTags requests: {api_calls_get_blob_tags}, errors: {errors_get_blob_tags}")
-        print(f"getBlob requests: {api_calls_get_blob}, errors: {errors_get_blob}")
-        print(f"setBlobTags requests: {api_calls_set_blob_tags}, errors: {errors_set_blob_tags}")
-        print(f"Total exec time: {metrics[-1]["edata"]["metric"]["total_exec_time_ms"]}")
-        print(f"Framework exec time: {metrics[-1]["edata"]["metric"]["fw_exec_time_ms"]}")
-        print(f"Connector exec time: {metrics[-1]["edata"]["metric"]["connector_exec_time_ms"]}")
-
         # Api call count asserts
-        assert api_calls_get_blob_tags  \
-            == api_calls_get_blob       \
-            == api_calls_set_blob_tags  \
+        assert api_calls_get_blob_metadata   \
+            == api_calls_get_blob          \
+            == api_calls_update_blob_metadata   \
             == obj_count
 
         # Number of times metrics_collector.collect() should be called
@@ -313,10 +249,18 @@ class TestBatchConnector(unittest.TestCase):
 
         # Objects discovered metrics
         assert metrics[
-            int(api_calls_list_blobs + api_calls_get_blob_tags)
+            int(api_calls_list_blobs + api_calls_get_blob_metadata)
         ]["edata"]["metric"]["new_objects_discovered"] == obj_count
 
         # Execution metrics
         assert metrics[-1]["edata"]["metric"]["total_records_count"] == expected_record_count
         assert metrics[-1]["edata"]["metric"]["success_records_count"] == expected_record_count
         assert metrics[-1]["edata"]["metric"]["failed_records_count"] == 0
+
+        print(f"listBlobs requests: {api_calls_list_blobs}, errors: {errors_list_blobs}")
+        print(f"getBlobMetadata requests: {api_calls_get_blob_metadata}, errors: {errors_get_blob_metadata}")
+        print(f"getBlob requests: {api_calls_get_blob}, errors: {errors_get_blob}")
+        print(f"updateBlobMetadata requests: {api_calls_update_blob_metadata}, errors: {errors_update_blob_metadata}")
+        print(f"Total exec time: {metrics[-1]["edata"]["metric"]["total_exec_time_ms"]}")
+        print(f"Framework exec time: {metrics[-1]["edata"]["metric"]["fw_exec_time_ms"]}")
+        print(f"Connector exec time: {metrics[-1]["edata"]["metric"]["connector_exec_time_ms"]}")

@@ -20,7 +20,8 @@ class GCS(BlobProvider):
     def __init__(self, connector_config) -> None:
         super().__init__()
         self.connector_config = connector_config
-        self.credentials = {k[19:]: v for k, v in self.connector_config.items() if "source_credentials" in k}
+        # self.credentials = {k[19:]: v for k, v in self.connector_config.items() if "source_credentials" in k}
+        self.credentials = connector_config["source_credentials"]
         self.key_path = "/tmp/key.json"
         with open(self.key_path, "w") as f:
             f.write(json.dumps(self.credentials))
@@ -39,7 +40,8 @@ class GCS(BlobProvider):
     def get_spark_config(self, connector_config) -> SparkConf:
         conf = get_base_conf()
         conf.setAppName("GCSObjectStoreConnector")
-        conf.set("spark.jars", os.path.join(os.path.dirname(__file__), "lib/gcs-connector-hadoop3-2.2.22-shaded.jar"))
+        # conf.set("spark.jars", os.path.join(os.path.dirname(__file__), "lib/gcs-connector-hadoop3-2.2.22-shaded.jar"))
+        conf.set("spark.jars", "libs/gcs-connector-hadoop3-2.2.22-shaded.jar")
         conf.set("spark.hadoop.google.cloud.auth.service.account.json.keyfile", self.key_path)
         conf.set("spark.hadoop.google.cloud.auth.service.account.enable", "true")
         conf.set("spark.hadoop.fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem")
