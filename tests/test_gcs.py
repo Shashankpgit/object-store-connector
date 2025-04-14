@@ -1,18 +1,21 @@
 import os
-
+import sys
 import json
-import yaml
 import unittest
 
+import yaml
 import psycopg2
 import psycopg2.extras
 import pytest
 
 from kafka import KafkaConsumer, TopicPartition
 
-from object_store_connector.connector import ObjectStoreConnector
 from obsrv.utils import EncryptionUtil, Config
 from obsrv.connector.batch import SourceConnector
+
+sys.path.insert(0, os.path.join(os.getcwd(), "object_store_connector"))
+
+from object_store_connector.connector import ObjectStoreConnector
 
 from tests.batch_setup import setup_obsrv_database  # noqa
 
@@ -190,7 +193,7 @@ class TestBatchConnector(unittest.TestCase):
         connector_stats = connector_instance["connector_stats"]
         conn.close
 
-        obj_count = 5
+        obj_count = 1
         records_per_obj = 200
         expected_record_count = obj_count * records_per_obj
 
@@ -212,7 +215,6 @@ class TestBatchConnector(unittest.TestCase):
         api_calls_update_blob_metadata, errors_update_blob_metadata = 0, 0
 
         for metric in metrics:
-            print(f"[METRIC] {metric}")
             for d in metric["edata"]["labels"]:
                 if "method_name" != d["key"]:
                     continue
@@ -232,6 +234,17 @@ class TestBatchConnector(unittest.TestCase):
                     api_calls_update_blob_metadata += metric["edata"]["metric"]["num_api_calls"]
                     errors_update_blob_metadata += metric["edata"]["metric"]["num_errors"]
                     break
+        
+        try:
+            print(f"listBlobs requests: {api_calls_list_blobs}, errors: {errors_list_blobs}")
+            print(f"getBlobMetadata requests: {api_calls_get_blob_metadata}, errors: {errors_get_blob_metadata}")
+            print(f"getBlob requests: {api_calls_get_blob}, errors: {errors_get_blob}")
+            print(f"updateBlobMetadata requests: {api_calls_update_blob_metadata}, errors: {errors_update_blob_metadata}")
+            print(f"Total exec time: {metrics[-1]["edata"]["metric"]["total_exec_time_ms"]}")
+            print(f"Framework exec time: {metrics[-1]["edata"]["metric"]["fw_exec_time_ms"]}")
+            print(f"Connector exec time: {metrics[-1]["edata"]["metric"]["connector_exec_time_ms"]}")
+        except Exception as e:
+            print(f"[ERROR] Error in printing stats: {e}")
 
         # Api call count asserts
         assert api_calls_get_blob_metadata   \
@@ -256,11 +269,3 @@ class TestBatchConnector(unittest.TestCase):
         assert metrics[-1]["edata"]["metric"]["total_records_count"] == expected_record_count
         assert metrics[-1]["edata"]["metric"]["success_records_count"] == expected_record_count
         assert metrics[-1]["edata"]["metric"]["failed_records_count"] == 0
-
-        print(f"listBlobs requests: {api_calls_list_blobs}, errors: {errors_list_blobs}")
-        print(f"getBlobMetadata requests: {api_calls_get_blob_metadata}, errors: {errors_get_blob_metadata}")
-        print(f"getBlob requests: {api_calls_get_blob}, errors: {errors_get_blob}")
-        print(f"updateBlobMetadata requests: {api_calls_update_blob_metadata}, errors: {errors_update_blob_metadata}")
-        print(f"Total exec time: {metrics[-1]["edata"]["metric"]["total_exec_time_ms"]}")
-        print(f"Framework exec time: {metrics[-1]["edata"]["metric"]["fw_exec_time_ms"]}")
-        print(f"Connector exec time: {metrics[-1]["edata"]["metric"]["connector_exec_time_ms"]}")

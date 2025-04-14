@@ -12,10 +12,10 @@ from pyspark.conf import SparkConf
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import lit
 
-from object_store_connector.models.object_info import ObjectInfo
-from object_store_connector.provider.azure import AzureBlobStorage
-from object_store_connector.provider.gcs import GCS
-from object_store_connector.provider.s3 import S3
+from models.object_info import ObjectInfo
+from provider.azure import AzureBlobStorage
+from provider.gcs import GCS
+from provider.s3 import S3
 
 logger = LoggerController(__name__)
 

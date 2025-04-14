@@ -10,8 +10,8 @@ from obsrv.models import ErrorData
 from pyspark.conf import SparkConf
 from pyspark.sql import DataFrame, SparkSession
 
-from object_store_connector.models.object_info import ObjectInfo, Tag
-from object_store_connector.provider.blob_provider import BlobProvider
+from models.object_info import ObjectInfo, Tag
+from provider.blob_provider import BlobProvider
 
 
 class S3(BlobProvider):

@@ -1,9 +1,9 @@
 import os
-
+import sys
 import json
-import yaml
 import unittest
 
+import yaml
 import psycopg2
 import psycopg2.extras
 import pytest
@@ -13,9 +13,12 @@ from minio import Minio
 from minio.error import S3Error
 from testcontainers.minio import MinioContainer
 
-from object_store_connector.connector import ObjectStoreConnector
 from obsrv.utils import EncryptionUtil, Config
 from obsrv.connector.batch import SourceConnector
+
+sys.path.insert(0, os.path.join(os.getcwd(), "object_store_connector"))
+
+from object_store_connector.connector import ObjectStoreConnector
 
 from tests.batch_setup import setup_obsrv_database  # noqa
 

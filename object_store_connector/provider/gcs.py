@@ -1,19 +1,21 @@
-from google.oauth2 import service_account
-from google.cloud import storage
-from pyspark.sql import DataFrame
+import os
+import json
 from typing import List, Iterator
 from uuid import uuid4
+
+from google.oauth2 import service_account
+from google.cloud import storage
+from google.api_core.exceptions import ClientError
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.conf import SparkConf
-from object_store_connector.models.object_info import Tag, ObjectInfo
+
 from obsrv.common import ObsrvException
-from pyspark.sql import SparkSession
 from obsrv.connector import MetricsCollector, ConnectorContext
 from obsrv.job.batch import get_base_conf
 from obsrv.models import ErrorData
-from google.api_core.exceptions import ClientError
-from object_store_connector.provider.blob_provider import BlobProvider
-import json
-import os
+
+from provider.blob_provider import BlobProvider
+from models.object_info import Tag, ObjectInfo
 
 
 class GCS(BlobProvider):

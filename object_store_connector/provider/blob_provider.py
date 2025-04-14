@@ -6,7 +6,7 @@ from pyspark.sql import DataFrame, SparkSession
 from obsrv.common import ObsrvException
 from obsrv.models import ErrorData
 
-from object_store_connector.models.object_info import ObjectInfo, Tag
+from models.object_info import ObjectInfo, Tag
 
 
 class JobConfig:

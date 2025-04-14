@@ -1,10 +1,11 @@
 import os
+import sys
+import json
 import unittest
 
 import psycopg2
 import pytest
 import yaml
-import json
 
 from azure.storage.blob import BlobServiceClient, ContentSettings
 from azure.core.exceptions import AzureError
@@ -13,6 +14,8 @@ from testcontainers.azurite import AzuriteContainer
 
 from obsrv.utils import EncryptionUtil, Config
 from obsrv.connector.batch import SourceConnector
+
+sys.path.insert(0, os.path.join(os.getcwd(), "object_store_connector"))
 
 from object_store_connector.connector import ObjectStoreConnector
 
