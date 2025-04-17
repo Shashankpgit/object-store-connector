@@ -155,13 +155,16 @@ class S3(BlobProvider):
         return is_tag_updated
 
     def fetch_objects(
-        self, ctx: ConnectorContext, metrics_collector: MetricsCollector
+        self, ctx: ConnectorContext, metrics_collector: MetricsCollector, prefix: str = None
     ) -> List[ObjectInfo]:
-        objects = self._list_objects(ctx, metrics_collector=metrics_collector)
+        if prefix is None:
+            prefix = self.prefix
+        objects = self._list_objects(prefix=prefix, ctx=ctx, metrics_collector=metrics_collector)
         objects_info = []
         for obj in objects:
             object_info = ObjectInfo(
                 location=f"{self.obj_prefix}{obj['Key']}",
+                key=obj['Key'],
                 format=obj["Key"].split(".")[-1],
                 file_size_kb=obj["Size"] // 1024,
                 file_hash=obj["ETag"].strip('"'),
@@ -227,9 +230,10 @@ class S3(BlobProvider):
             return session.client("s3")
         return session.client("s3", endpoint_url=self.endpoint_url)
 
-    def _list_objects(self, ctx: ConnectorContext, metrics_collector: MetricsCollector) -> list:
+    def _list_objects(
+        self, ctx: ConnectorContext, metrics_collector: MetricsCollector, prefix: str
+    ) -> list:
         bucket_name = self.bucket
-        prefix = self.prefix
         summaries = []
         continuation_token = None
         file_formats = {
