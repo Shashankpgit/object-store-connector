@@ -24,7 +24,6 @@ logger = LoggerController(__name__)
 
 MAX_RETRY_COUNT = 10
 
-
 schedule_dict = {
     "Hourly": {
         "last_processed_partition": "minute=0, second=0, microsecond=0",
@@ -71,15 +70,20 @@ class ObjectStoreConnector(ISourceConnector):
             else MAX_RETRY_COUNT
         )
         self._get_provider(connector_config)
-        self.partition_type = connector_config.get("source_partition_type")
+        self.partition_type = connector_config.get("source_partition_type", None)
         if self.partition_type == "time":
             self.schedule = ops_config.get("schedule", None)
-            print(f"schedule retrieved from the ops config: {self.schedule}")
+            if self.schedule is None:
+                raise ObsrvException(
+                    ErrorData(
+                        "INVALID_OPERATIONS_CONFIG", f"schedule must be provided in operations config when source_partition_type is time"
+                    )
+                )
             self.schedule_config = schedule_dict.get(self.schedule, None)
             if self.schedule_config is None:
                 raise ObsrvException(
                     ErrorData(
-                        "INVALID_SCHEDULE", f"invalid schedule, schedule must be one of {schedule_dict.keys()}"
+                        "INVALID_OPERATIONS_CONFIG", f"operations config schedule must be one of {schedule_dict.keys()}"
                     )
                 )
             self._time_get_objects_to_process(ctx, connector_config, metrics_collector)
@@ -123,7 +127,13 @@ class ObjectStoreConnector(ISourceConnector):
         metrics_collector: MetricsCollector
     ) -> None:
         # set needed class instance variables
-        self.prefix_template = connector_config["source_prefix"]
+        self.prefix_template = connector_config.get("source_prefix", None)
+        if self.prefix_template is None:
+            raise ObsrvException(
+                ErrorData(
+                    "INVALID_CONNECTOR_CONFIG", "source_prefix must be provided in connector config when source_partition_type is time"
+                )
+            )
         self.prefix_regex = self.prefix_template.replace('%d', '(\d{1,2})').replace('%m', '(\d{1,2})').replace('%Y', '(\d{4})').replace('%H', '(\d{2})')
 
         objects = ctx.state.get_state("to_process", list())
