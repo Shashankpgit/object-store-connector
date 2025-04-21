@@ -118,8 +118,8 @@ class S3(BlobProvider):
         api_calls, errors = 0, 0
         error_code = ""
         is_tag_updated = False
-        stripped_file_path = object.get("location").lstrip("s3a://")
-        bucket_name, object_key = stripped_file_path.split("/", 1)
+        bucket_name = self.bucket
+        object_key = object.get("key")
 
         initial_tags = object.get("tags")
         new_tags = list(
@@ -164,7 +164,7 @@ class S3(BlobProvider):
         for obj in objects:
             object_info = ObjectInfo(
                 location=f"{self.obj_prefix}{obj['Key']}",
-                key=obj['Key'],
+                key=obj["Key"],
                 format=obj["Key"].split(".")[-1],
                 file_size_kb=obj["Size"] // 1024,
                 file_hash=obj["ETag"].strip('"'),
