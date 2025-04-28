@@ -262,6 +262,7 @@ class TestBatchConnector(unittest.TestCase):
         with open(config_file_path, "r") as config_file:
             config = yaml.safe_load(config_file)
             config["connector_instance_id"] = "s3.new-york-taxi-data.1"
+            config["kafka"]["connector-metrics-topic"] = "dev.metrics.no.tp"
         with open(config_file_path, "w") as config_file:
             yaml.dump(config, config_file)
 
