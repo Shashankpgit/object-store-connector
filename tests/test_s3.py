@@ -103,7 +103,7 @@ def init_minio(config):
     except S3Error as e:
         print(f"[ERROR] Error while creating MINIO bucket: {e}")
 
-    file_path = "./stubs/events/chunk-4997.json"
+    file_path = "./tests/test_data/chunk-1.json"
     c_type = "application/json"
 
     # Upload Objects
