@@ -62,6 +62,7 @@ class ObjectStoreConnector(ISourceConnector):
         ctx: ConnectorContext,
         ops_config: Dict[Any, Any],
         connector_config: Dict[Any, Any],
+        operations_config: Dict[Any, Any],
         metrics_collector: MetricsCollector,
     ) -> Iterator[DataFrame]:
         self.max_retries = (
@@ -257,7 +258,7 @@ class ObjectStoreConnector(ISourceConnector):
                         break
                 return
             else:
-                df = self._append_custom_meta(sc, df, obj)
+                # df = self._append_custom_meta(sc, df, obj)
                 obj["download_time"] = time.time() - obj.get("start_processing_time")
                 if not self.provider.update_tag(
                     object=obj,
