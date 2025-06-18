@@ -7,23 +7,13 @@ postgres:
 
 kafka:
   broker-servers: localhost:9092
-  telemetry-topic: dev.telemetry
-  connector-metrics-topic: dev.metrics
-  # telemetry-topic: azure.telemetry
-  # connector-metrics-topic: azure.metrics
+  telemetry-topic: test.telemetry
+  connector-metrics-topic: test.metrics
   producer:
     compression: gzip
     max-request-size: 1000000 # 1MB {1M: 1000000, 10M: 10000000, 5M: 5000000}
 
 obsrv_encryption_key: strong_encryption_key_to_encrypt
 
-connector_instance_id: s3.new-york-taxi-data.1
-
 building-block: py-sdk-test
 env: local
-# obsrv_encryption_key: random_32_byte_encryption_string
-
-# connector_instance_id: azure.new-york-taxi-data.1
-
-# building-block: py-sdk-test
-# env: local

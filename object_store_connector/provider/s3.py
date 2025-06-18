@@ -76,7 +76,7 @@ class S3(BlobProvider):
             "spark.hadoop.fs.s3a.secret.key",
             connector_config["source_credentials_secret_key"],
         )  # AWS secret key
-        conf.set("com.amazonaws.services.s3.enableV4", "true")  # Enable V4 signature
+        # conf.set("com.amazonaws.services.s3.enableV4", "true")  # Enable V4 signature
 
         return conf
 
@@ -157,9 +157,8 @@ class S3(BlobProvider):
     def fetch_objects(
         self, ctx: ConnectorContext, metrics_collector: MetricsCollector, prefix: str = None
     ) -> List[ObjectInfo]:
-        if prefix is None:
-            prefix = self.prefix
-        objects = self._list_objects(prefix=prefix, ctx=ctx, metrics_collector=metrics_collector)
+        prefix = self.prefix if prefix is None else prefix
+        objects = self._list_objects(ctx, metrics_collector=metrics_collector, prefix=prefix)
         objects_info = []
         for obj in objects:
             object_info = ObjectInfo(
@@ -283,7 +282,8 @@ class S3(BlobProvider):
             {"key": "request_method", "value": "GET"},
             {"key": "method_name", "value": "ListObjectsV2"},
             {"key": "object_path", "value": ""},
-            {"key": "error_code", "value": error_code}
+            {"key": "error_code", "value": error_code},
+            {"key": "prefix", "value": prefix}
         ]
         metrics_collector.collect({"num_api_calls": api_calls, "num_errors": errors}, addn_labels=labels)
         return summaries

@@ -55,12 +55,17 @@ class ObjectStoreConnector(ISourceConnector):
         self.dedupe_tag = None
         self.success_state = StatusCode.SUCCESS.value
         self.error_state = StatusCode.FAILED.value
+        self.prefix_template = None
+        self.prefix_regex = None
+        self.last_processed_time_partition = None
+        self.schedule_config = None
+        self.schedule = None
+        self.partition_type = None
 
     def process(
         self,
         sc: SparkSession,
         ctx: ConnectorContext,
-        ops_config: Dict[Any, Any],
         connector_config: Dict[Any, Any],
         operations_config: Dict[Any, Any],
         metrics_collector: MetricsCollector,
@@ -73,7 +78,7 @@ class ObjectStoreConnector(ISourceConnector):
         self._get_provider(connector_config)
         self.partition_type = connector_config.get("source_partition_type", None)
         if self.partition_type == "time":
-            self.schedule = ops_config.get("schedule", None)
+            self.schedule = operations_config.get("schedule", None)
             if self.schedule is None:
                 raise ObsrvException(
                     ErrorData(
@@ -87,9 +92,17 @@ class ObjectStoreConnector(ISourceConnector):
                         "INVALID_OPERATIONS_CONFIG", f"operations config schedule must be one of {schedule_dict.keys()}"
                     )
                 )
-            self._time_get_objects_to_process(ctx, connector_config, metrics_collector)
-        else:
-            self._get_objects_to_process(ctx, metrics_collector)
+
+            self.prefix_template = connector_config.get("source_prefix", None)
+            if self.prefix_template is None:
+                raise ObsrvException(
+                    ErrorData(
+                        "INVALID_CONNECTOR_CONFIG", "source_prefix must be provided in connector config when source_partition_type is time"
+                    )
+                )
+            self.prefix_regex = self.prefix_template.replace('%d', '(\d{1,2})').replace('%m', '(\d{1,2})').replace('%Y', '(\d{4})').replace('%H', '(\d{2})')
+
+        self._get_objects_to_process(ctx, connector_config, metrics_collector)
         for res in self._process_objects(sc, ctx, connector_config, metrics_collector):
             yield res
 
@@ -121,87 +134,8 @@ class ObjectStoreConnector(ISourceConnector):
                 )
             )
 
-    def _time_get_objects_to_process(
-        self,
-        ctx: ConnectorContext,
-        connector_config: Dict[Any, Any],
-        metrics_collector: MetricsCollector
-    ) -> None:
-        # set needed class instance variables
-        self.prefix_template = connector_config.get("source_prefix", None)
-        if self.prefix_template is None:
-            raise ObsrvException(
-                ErrorData(
-                    "INVALID_CONNECTOR_CONFIG", "source_prefix must be provided in connector config when source_partition_type is time"
-                )
-            )
-        self.prefix_regex = self.prefix_template.replace('%d', '(\d{1,2})').replace('%m', '(\d{1,2})').replace('%Y', '(\d{4})').replace('%H', '(\d{2})')
-
-        objects = ctx.state.get_state("to_process", list())
-        self.last_processed_time_partition = ctx.state.get_state("last_processed_time_partition", None)
-        if ctx.building_block is not None and ctx.env is not None:
-            self.dedupe_tag = "{}-{}".format(ctx.building_block, ctx.env)
-        else:
-            raise ObsrvException(
-                ErrorData(
-                    "INVALID_CONTEXT", "building_block or env not found in context"
-                )
-            )
-
-        if (self.last_processed_time_partition is None) and not (len(objects)):
-            # very first run of connector as no last partitioned time
-            # need to fetch all objects on first run
-            num_files_discovered = ctx.stats.get_stat("num_files_discovered", 0)
-            if self.schedule is not None:
-                self._set_last_processed_partition()
-            objects = self.provider.fetch_objects(prefix="", ctx=ctx, metrics_collector=metrics_collector)
-
-            # exclude processed objects
-            objects = self._exclude_processed_objects(ctx, objects)
-
-            # exclude objects without date in prefix (objects without right prefix format)
-            # will need to create function for this
-            objects = self._filter_object_prefix(objects)
-
-            # Collect metrics and save stats as before
-            metrics_collector.collect("new_objects_discovered", len(objects))
-            ctx.state.put_state("to_process", objects)
-            ctx.state.put_state("last_processed_time_partition", self.last_processed_time_partition)
-            ctx.state.save_state()
-            num_files_discovered += len(objects)
-            ctx.stats.put_stat("num_files_discovered", num_files_discovered)
-            ctx.stats.save_stats()
-
-        elif not len(objects):
-            num_files_discovered = ctx.stats.get_stat("num_files_discovered", 0)
-            # fetch last date prefix.
-            partition_date_to_process = datetime.datetime.fromisoformat(self.last_processed_time_partition)
-
-            while True:
-                # if new date prefix exceeds current time then break
-                # fetch objects with new date prefix
-                # extend the objects list with newly fetched objects if any
-                # update last date prefix in connector state
-                # add interval to last date prefix
-                if datetime.datetime.now() < partition_date_to_process:
-                    break
-                prefix = partition_date_to_process.strftime(self.prefix_template)
-                fetched_objects = self.provider.fetch_objects(ctx=ctx, metrics_collector=metrics_collector, prefix=prefix)
-                objects += self._exclude_processed_objects(ctx, fetched_objects)
-                ctx.state.put_state("last_processed_time_partition", partition_date_to_process)
-                partition_date_to_process = self._get_next_partition_date(partition_date_to_process)
-
-            metrics_collector.collect("new_objects_discovered", len(objects))
-            ctx.state.put_state("to_process", objects)
-            ctx.state.save_state()
-            num_files_discovered += len(objects)
-            ctx.stats.put_stat("num_files_discovered", num_files_discovered)
-            ctx.stats.save_stats()
-
-        self.objects = objects
-
     def _get_objects_to_process(
-        self, ctx: ConnectorContext, metrics_collector: MetricsCollector
+        self, ctx: ConnectorContext, connector_config: Dict[Any, Any], metrics_collector: MetricsCollector
     ) -> None:
         objects = ctx.state.get_state("to_process", list())
         if ctx.building_block is not None and ctx.env is not None:
@@ -215,7 +149,11 @@ class ObjectStoreConnector(ISourceConnector):
 
         if not len(objects):
             num_files_discovered = ctx.stats.get_stat("num_files_discovered", 0)
-            objects = self.provider.fetch_objects(ctx=ctx, metrics_collector=metrics_collector)
+            objects = list()
+            if self.partition_type == "time":
+                objects = self._get_partitioned_objects_to_process(ctx, connector_config, metrics_collector)
+            else:
+                objects = self.provider.fetch_objects(ctx, metrics_collector=metrics_collector)
             objects = self._exclude_processed_objects(ctx, objects)
             metrics_collector.collect("new_objects_discovered", len(objects))
             ctx.state.put_state("to_process", objects)
@@ -225,6 +163,28 @@ class ObjectStoreConnector(ISourceConnector):
             ctx.stats.save_stats()
 
         self.objects = objects
+
+    def _get_partitioned_objects_to_process(self, ctx: ConnectorContext, connector_config: Dict[Any, Any], metrics_collector: MetricsCollector) -> None:
+        objects = list()
+        self.last_processed_time_partition = ctx.state.get_state("last_processed_time_partition", None)
+
+        if self.last_processed_time_partition is None:
+            objects = self.provider.fetch_objects(ctx, metrics_collector=metrics_collector, prefix="")
+            objects = self._filter_object_prefix(objects)
+            self._set_last_processed_partition()
+            ctx.state.put_state("last_processed_time_partition", self.last_processed_time_partition)
+        else:
+            partition_date_to_process = datetime.datetime.fromisoformat(self.last_processed_time_partition)
+            while True:
+                if datetime.datetime.now() < partition_date_to_process:
+                    break
+                prefix = partition_date_to_process.strftime(self.prefix_template)
+                fetched_objects = self.provider.fetch_objects(ctx=ctx, metrics_collector=metrics_collector, prefix=prefix)
+                objects += self._exclude_processed_objects(ctx, fetched_objects)
+                ctx.state.put_state("last_processed_time_partition", partition_date_to_process)
+                partition_date_to_process = self._get_next_partition_date(partition_date_to_process)
+
+        return objects
 
     def _process_objects(
         self,
@@ -311,7 +271,6 @@ class ObjectStoreConnector(ISourceConnector):
             key = obj.get("key")
             match = re.search(pattern=self.prefix_regex, string=key)
             if not match:
-                print(f"[INFO] object '{key}'. does not match prefix template: {self.prefix_template}")
                 continue
             prefix = match.group(0)
             try:
@@ -322,7 +281,6 @@ class ObjectStoreConnector(ISourceConnector):
 
             # exclude object if timestamp is in future
             if datetime.datetime.now() < object_timestamp:
-                print(f"[INFO] object '{key}' partition is in future.")
                 continue
             to_be_processed.append(obj)
 

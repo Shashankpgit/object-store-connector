@@ -7,7 +7,6 @@ postgres:
 
 kafka:
   broker-servers: localhost:9092
-  telemetry-topic: obsrv-connectors-telemetry
   connector-metrics-topic: obsrv-connectors-metrics
   producer:
     compression: snappy

@@ -1,17 +1,22 @@
+import json
+from kafka import KafkaConsumer, TopicPartition, KafkaAdminClient
+from kafka.admin import NewTopic
 import os
-
 import pytest
+import time
 import yaml
+import psycopg2
+import psycopg2.extras
+
 from testcontainers.kafka import KafkaContainer
 from testcontainers.postgres import PostgresContainer
 
-import psycopg2
+from pyspark.sql import SparkSession
 
-# from tests.create_tables import create_tables
-
+from obsrv.job.batch import get_base_conf
+from obsrv.utils import EncryptionUtil
 
 def create_tables(config):
-
     datasets = """
         CREATE TABLE public.datasets (
             id text NOT NULL,
@@ -36,7 +41,7 @@ def create_tables(config):
             api_version varchar(255) DEFAULT 'v1'::character varying NOT NULL,
             "version" int4 DEFAULT 1 NOT NULL,
             sample_data json DEFAULT '{}'::json NULL,
-            entry_topic text DEFAULT 'dev.ingest'::text NOT NULL,
+            entry_topic text DEFAULT 'test.ingest'::text NOT NULL,
             CONSTRAINT datasets_pkey PRIMARY KEY (id)
         );
     """
@@ -171,14 +176,11 @@ def setup_obsrv_database(request):
     ) as config_file:
         config = yaml.safe_load(config_file)
 
-        config["connector-instance-id"] = "s3.new-york-taxi-data.1"
-        # config["connector-instance-id"] = "azure.new-york-taxi-data.1"
-
         config["postgres"]["host"] = postgres.get_container_host_ip()
         config["postgres"]["port"] = postgres.get_exposed_port(5432)
-        config["postgres"]["user"] = postgres.POSTGRES_USER
-        config["postgres"]["password"] = postgres.POSTGRES_PASSWORD
-        config["postgres"]["dbname"] = postgres.POSTGRES_DB
+        config["postgres"]["user"] = postgres.username
+        config["postgres"]["password"] = postgres.password
+        config["postgres"]["dbname"] = postgres.dbname
         config["kafka"]["broker-servers"] = kafka.get_bootstrap_server()
 
     with open(
@@ -198,3 +200,249 @@ def setup_obsrv_database(request):
             print("config file already removed")
 
     request.addfinalizer(remove_container)
+
+@pytest.fixture(scope="session", autouse=True)
+def create_spark_session(request):
+    spark_conf = get_base_conf()
+    spark_conf.set("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,org.apache.hadoop:hadoop-aws:3.3.4,org.apache.hadoop:hadoop-azure:3.3.1")
+
+    assert os.path.exists("libs/gcs-connector-3.1.3-shaded.jar")
+
+    spark_conf.set("spark.jars", "libs/gcs-connector-3.1.3-shaded.jar")
+
+    sc = SparkSession.builder.appName("object-store-connector-test").config(conf=spark_conf).getOrCreate()
+    sc.stop()
+
+def validate_results(config, connector_instance_id):
+    test_raw_topic = "test.ingest"
+    test_metrics_topic = config.find("kafka.connector-metrics-topic")
+
+    kafka_consumer = KafkaConsumer(
+        bootstrap_servers=config.find("kafka.broker-servers"),
+        group_id="azure-group",
+        enable_auto_commit=True,
+        auto_offset_reset='earliest'
+    )
+
+    trt_consumer = TopicPartition(test_raw_topic, 0)
+    tmt_consumer = TopicPartition(test_metrics_topic, 0)
+
+    kafka_consumer.assign([trt_consumer, tmt_consumer])
+
+    connector_state = None
+    connector_stats = None
+
+    postgres_config = config.find("postgres")
+    conn = psycopg2.connect(
+        host=postgres_config["host"],
+        port=postgres_config["port"],
+        user=postgres_config["user"],
+        password=postgres_config["password"],
+        dbname=postgres_config["dbname"],
+    )
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute(f"SELECT * FROM connector_instances WHERE id = '{connector_instance_id}';")
+    connector_instance = cur.fetchone()
+    connector_state = connector_instance["connector_state"]
+    connector_stats = connector_instance["connector_stats"]
+    conn.close()
+
+    obj_count = 1
+    records_per_obj = 200
+    expected_record_count = obj_count * records_per_obj
+
+    metrics = []
+    all_messages = kafka_consumer.poll(timeout_ms=10000)
+    while len(metrics) < kafka_consumer.end_offsets([tmt_consumer])[tmt_consumer]:
+        print(f"polling metrics for instance {connector_instance_id} ....")
+        for topic_partition, messages in all_messages.items():
+            for message in messages:
+                if topic_partition.topic == test_metrics_topic:
+                    metrics.append(json.loads(message.value))
+        time.sleep(1)
+        all_messages = kafka_consumer.poll(timeout_ms=10000)
+
+    api_calls_list_blobs, errors_list_blobs = 0, 0
+    api_calls_get_blob_tags, errors_get_blob_tags = 0, 0
+    api_calls_get_blob, errors_get_blob = 0, 0
+    api_calls_set_blob_tags, errors_set_blob_tags = 0, 0
+
+    final_metric_object = dict()
+    num_objects_discovered = 0
+    for metric in metrics:
+        if "metric" in metric["edata"] and "total_exec_time_ms" in metric["edata"]["metric"]:
+            final_metric_object = metric
+
+        if "new_objects_discovered" in metric["edata"]["metric"]:
+            num_objects_discovered += metric["edata"]["metric"]["new_objects_discovered"]
+
+        for d in metric["edata"]["labels"]:
+            if "method_name" != d["key"]:
+                continue
+            if d["value"] == "listBlobs" or d["value"] == "ListObjectsV2" or d["value"] == "listObjects":
+                api_calls_list_blobs += metric["edata"]["metric"]["num_api_calls"]
+                errors_list_blobs += metric["edata"]["metric"]["num_errors"]
+                break
+            if d["value"] == "getBlobTags" or d["value"] == "getObjectTagging" or d["value"] == "getBlobMetadata":
+                api_calls_get_blob_tags += metric["edata"]["metric"]["num_api_calls"]
+                errors_get_blob_tags += metric["edata"]["metric"]["num_errors"]
+                break
+            if d["value"] == "getBlob" or d["value"] == "getObject" or d["value"] == "getBlob":
+                api_calls_get_blob += metric["edata"]["metric"]["num_api_calls"]
+                errors_get_blob += metric["edata"]["metric"]["num_errors"]
+                break
+            if d["value"] == "setBlobTags" or d["value"] == "setObjectTagging" or d["value"] == "updateBlobMetadata":
+                api_calls_set_blob_tags += metric["edata"]["metric"]["num_api_calls"]
+                errors_set_blob_tags += metric["edata"]["metric"]["num_errors"]
+                break
+
+    print("Connector State: ", connector_state)
+    print("Connector Stats: ", connector_stats)
+    print("Metrics: ", json.dumps(metrics))
+    print(f"listBlobs/ListObjectsV2/listObjects requests: {api_calls_list_blobs}, errors: {errors_list_blobs}")
+    print(f"getBlobTags/getObjectTagging/getBlobMetadata requests: {api_calls_get_blob_tags}, errors: {errors_get_blob_tags}")
+    print(f"getBlob/getObject/getBlob requests: {api_calls_get_blob}, errors: {errors_get_blob}")
+    print(f"setBlobTags/setObjectTagging/updateBlobMetadata requests: {api_calls_set_blob_tags}, errors: {errors_set_blob_tags}")
+    print(f"Total exec time: {final_metric_object["edata"]["metric"]["total_exec_time_ms"]}")
+    print(f"Framework exec time: {final_metric_object["edata"]["metric"]["fw_exec_time_ms"]}")
+    print(f"Connector exec time: {final_metric_object["edata"]["metric"]["connector_exec_time_ms"]}")
+    print(f"Total records count: {final_metric_object["edata"]["metric"]["total_records_count"]}")
+
+    # Postgres asserts
+    assert connector_stats["num_files_discovered"] == obj_count
+    assert connector_stats["num_files_processed"] == obj_count
+    assert connector_state["to_process"] == []
+
+    # Kafka asserts
+    assert kafka_consumer.end_offsets([trt_consumer]) == {trt_consumer: expected_record_count}
+
+    # Execution metrics
+    assert final_metric_object["edata"]["metric"]["total_records_count"] == expected_record_count
+
+    time.sleep(10)
+
+def insert_connectors(connector_instances):
+    with open(
+        os.path.join(os.path.dirname(__file__), "config/config.yaml"), "r"
+    ) as config_file:
+        config = yaml.safe_load(config_file)
+
+    enc = EncryptionUtil(config["obsrv_encryption_key"])
+
+    ins_cr = """
+        INSERT INTO connector_registry (
+            id,
+            connector_id,
+            "name",
+            "type",
+            category,
+            "version",
+            description,
+            technology,
+            runtime,
+            licence,
+            "owner",
+            iconurl,
+            status,
+            ui_spec,
+            source_url,
+            "source",
+            created_by,
+            updated_by,
+            created_date,
+            updated_date,
+            live_date
+        ) VALUES (
+            'object-store-connector',
+            'azure-connector',
+            'Azure Blob Storage',
+            'source',
+            'batch',
+            '0.1.0',
+            'test_reader',
+            'Python',
+            'Spark',
+            'MIT',
+            'ravi@obsrv.ai',
+            'http://localhost',
+            'Live',
+            '{}',
+            'object_store_connector-0.1.0.tar_8b84dc.gz',
+            '{}',
+            'SYSTEM',
+            'SYSTEM',
+            now(),
+            now(),
+            now()
+        );
+    """
+
+    ins_ci = """
+        INSERT INTO connector_instances (
+            id,
+            dataset_id,
+            connector_id,
+            connector_config,
+            operations_config,
+            status,
+            connector_state,
+            connector_stats,
+            created_by,
+            updated_by,
+            created_date,
+            updated_date,
+            published_date
+        ) VALUES (
+            %s,
+            'new-york-taxi-data',
+            'object-store-connector',
+            %s,
+            %s,
+            'Live',
+            %s,
+            '{}',
+            'SYSTEM',
+            'SYSTEM',
+            now(),
+            now(),
+            now()
+        );
+    """
+
+    conn = psycopg2.connect(
+        host=config["postgres"]["host"],
+        port=config["postgres"]["port"],
+        user=config["postgres"]["user"],
+        password=config["postgres"]["password"],
+        dbname=config["postgres"]["dbname"],
+    )
+
+    cur = conn.cursor()
+
+    cur.execute(ins_cr)
+
+    for instance in connector_instances:
+        connector_instance_id = instance["id"]
+        enc_config = enc.encrypt(instance["connector_config"])
+        operations_config = instance.get("operations_config", '{}')
+        connector_state = instance.get("connector_state", '{}')
+        cur.execute(ins_ci, (connector_instance_id, json.dumps(enc_config), operations_config, connector_state,))
+
+    conn.commit()
+    conn.close()
+
+
+def delete_and_create_topic(config, topics):
+    admin_client = KafkaAdminClient(
+        bootstrap_servers=config.find("kafka.broker-servers"),
+        client_id="test-client"
+    )
+    try:
+        admin_client.delete_topics(topics)
+        time.sleep(10)
+    except Exception as e:
+        # print("Error deleting topics: ", e)
+        pass
+
+    admin_client.create_topics([NewTopic(topic, 1, 1) for topic in topics])
+    admin_client.close()

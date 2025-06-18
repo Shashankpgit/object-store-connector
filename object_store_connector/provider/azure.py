@@ -45,6 +45,7 @@ class AzureBlobStorage(BlobProvider):
     ) -> List[ObjectInfo]:
         if prefix is None:
             prefix = self.prefix
+        prefix = self.prefix if prefix is None else prefix
 
         objects = self._list_blobs(ctx=ctx, metrics_collector=metrics_collector, prefix=prefix)
 
