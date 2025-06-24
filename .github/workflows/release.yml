@@ -1,0 +1,48 @@
+name: Release Object Store Connector
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 🧾 Checkout Code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: 📦 Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: 📦 Install Dependencies
+      run: poetry install
+
+    - name: 🔍 Inspect Project Structure
+      run: ls -lh
+
+    - name: 📂 Prepare Distribution Directory
+      run: |
+        mkdir -p dist/object-store-connector
+        cp -r object_store_connector scripts dist/object-store-connector/
+        cp metadata.json ui-config.json *.svg README.md dist/object-store-connector/ || true
+        echo "Version: ${GITHUB_REF#refs/tags/}" > dist/object-store-connector/VERSION.txt
+
+    - name: 📦 Create Tarball
+      run: |
+        tar -czvf object-store-connector.tar.gz dist/
+
+    - name: 🚀 Upload Release Asset
+      uses: softprops/action-gh-release@v2
+      with:
+        files: object-store-connector.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
