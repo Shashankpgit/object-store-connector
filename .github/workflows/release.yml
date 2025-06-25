@@ -40,7 +40,7 @@ jobs:
 
     - name: Create Tarball
       run: |
-        tar -czvf object_store_connector.tar.gz object_store_connector-*
+        tar -czvf object-store-connector.tar.gz object_store_connector-*
 
 
     - name: 🚀 Upload Release Asset
