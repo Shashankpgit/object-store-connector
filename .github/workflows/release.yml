@@ -29,16 +29,17 @@ jobs:
     - name: 🔍 Inspect Project Structure
       run: ls -lh
 
-    - name: 📂 Prepare Distribution Directory
+    - name: Prepare Distribution Directory
       run: |
-        mkdir -p dist/object-store-connector
-        cp -r object_store_connector scripts dist/object-store-connector/
-        cp metadata.json ui-config.json *.svg README.md dist/object-store-connector/ || true
-        echo "Version: ${GITHUB_REF#refs/tags/}" > dist/object-store-connector/VERSION.txt
+        mkdir -p object-store-connector
+        cp -r object_store_connector scripts object-store-connector/
+        cp metadata.json ui-config.json *.svg README.md object-store-connector/ || true
+        echo "Version: ${GITHUB_REF#refs/tags/}" > object-store-connector/VERSION.txt
 
-    - name: 📦 Create Tarball
+    - name: Create Tarball
       run: |
-        tar -czvf object-store-connector.tar.gz dist/
+        tar -czvf object-store-connector.tar.gz object-store-connector/
+
 
     - name: 🚀 Upload Release Asset
       uses: softprops/action-gh-release@v2
