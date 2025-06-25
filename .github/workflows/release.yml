@@ -3,47 +3,42 @@ name: Release Object Store Connector
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'  # Trigger on version tags like v1.0.0
+      - '[0-9]+.[0-9]+.[0-9]+'  # Trigger on tags like 1.0.0, 6.0.0 (no 'v' prefix)
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 🧾 Checkout Code
+    - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: 🐍 Set up Python
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    - name: 📦 Install Poetry
+    - name: Install Poetry
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    - name: 📦 Install Dependencies
+    - name: Install Dependencies
       run: poetry install
-
-    - name: 🔍 Inspect Project Structure
-      run: ls -lh
 
     - name: Prepare Distribution Directory
       run: |
-        VERSION="${GITHUB_REF#refs/tags/}"
-        FOLDER_NAME="object_store_connector-${VERSION}"
-        mkdir -p "${FOLDER_NAME}"
-        cp -r object_store_connector scripts "${FOLDER_NAME}/"
-        cp metadata.json ui-config.json *.svg README.md "${FOLDER_NAME}/" || true
-        echo "Version: ${VERSION}" > "${FOLDER_NAME}/VERSION.txt"
+        FIXED_FOLDER="object_store_connector-0.1.0"
+        mkdir -p "${FIXED_FOLDER}"
+        cp -r object_store_connector scripts "${FIXED_FOLDER}/"
+        cp metadata.json ui-config.json *.svg README.md "${FIXED_FOLDER}/" || true
+        echo "Version: 0.1.0" > "${FIXED_FOLDER}/VERSION.txt"
 
     - name: Create Tarball
       run: |
-        tar -czvf object-store-connector.tar.gz object_store_connector-*
+        tar -czvf object-store-connector.tar.gz object_store_connector-0.1.0/
 
-
-    - name: 🚀 Upload Release Asset
+    - name: Upload Release Asset
       uses: softprops/action-gh-release@v2
       with:
         files: object-store-connector.tar.gz
