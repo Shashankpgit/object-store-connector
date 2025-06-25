@@ -31,14 +31,16 @@ jobs:
 
     - name: Prepare Distribution Directory
       run: |
-        mkdir -p object-store-connector
-        cp -r object_store_connector scripts object-store-connector/
-        cp metadata.json ui-config.json *.svg README.md object-store-connector/ || true
-        echo "Version: ${GITHUB_REF#refs/tags/}" > object-store-connector/VERSION.txt
+        VERSION="${GITHUB_REF#refs/tags/}"
+        FOLDER_NAME="object_store_connector-${VERSION}"
+        mkdir -p "${FOLDER_NAME}"
+        cp -r object_store_connector scripts "${FOLDER_NAME}/"
+        cp metadata.json ui-config.json *.svg README.md "${FOLDER_NAME}/" || true
+        echo "Version: ${VERSION}" > "${FOLDER_NAME}/VERSION.txt"
 
     - name: Create Tarball
       run: |
-        tar -czvf object-store-connector.tar.gz object-store-connector/
+        tar -czvf object_store_connector.tar.gz object_store_connector-*
 
 
     - name: 🚀 Upload Release Asset
