@@ -36,7 +36,7 @@ jobs:
 
     - name: Create Tarball
       run: |
-        tar -czvf object-store-connector.tar.gz object_store_connector-0.1.0/
+        tar -czvf object-store-connector.tar.gz object_store_connector-0.2.0/
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v2
