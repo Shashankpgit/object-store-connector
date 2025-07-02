@@ -21,8 +21,8 @@ class S3(BlobProvider):
         self.endpoint_url = "s3.amazonaws.com"
         self.is_s3_client = True
         endpoint = connector_config.get("source_credentials_endpoint", None)
-        if endpoint is not None:
-            self.endpoint_url = f"http://{connector_config["source_credentials_endpoint"]}"
+        if endpoint is not None and len(endpoint.strip()) > 0:
+            self.endpoint_url = f"{endpoint.strip()}"
             self.is_s3_client = False
         self.bucket = connector_config["source_bucket"]
         # self.prefix = connector_config.get('prefix', '/') # TODO: Implement partitioning support

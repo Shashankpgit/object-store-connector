@@ -76,6 +76,7 @@ class ObjectStoreConnector(ISourceConnector):
             else MAX_RETRY_COUNT
         )
         self._get_provider(connector_config)
+        logger.info("Processing connector with config: {}")
         self.partition_type = connector_config.get("source_partition_type", None)
         if self.partition_type == "time":
             self.schedule = operations_config.get("schedule", None)

@@ -21,7 +21,7 @@ class AzureBlobStorage(BlobProvider):
         self.account_name = connector_config["source_credentials_account_name"]
         self.account_key = connector_config["source_credentials_account_key"]
         self.container_name = connector_config["source_container_name"]
-        self.blob_endpoint = connector_config.get("source_blob_endpoint", None)
+        self.blob_endpoint = connector_config.get("source_blob_endpoint", "core.windows.net")
         self.prefix = connector_config.get("source_prefix", "")
 
         if self.blob_endpoint == "core.windows.net":

@@ -26,7 +26,8 @@ python = "^3.10"
 azure-storage-blob= "^12.20.0"
 boto3 = "1.34.82"
 google-cloud-storage = "^2.16.0"
-obsrv = {version = "0.1.3", extras = ["batch"]}
+obsrv = {version = "0.1.4", extras = ["batch"]}
+python-dateutil = "^2.9.0.post0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -44,3 +45,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 package = "scripts.build_dist:main"
+
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
