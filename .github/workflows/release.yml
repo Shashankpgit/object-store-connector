@@ -22,6 +22,9 @@ jobs:
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
+    
+    - name: Rebuild poetry.lock
+      run: poetry lock   
 
     - name: Install Dependencies
       run: poetry install
