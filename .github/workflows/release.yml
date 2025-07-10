@@ -28,12 +28,11 @@ jobs:
     
     - name: Prepare Distribution Directory
       run: |
-        VERSION="1.0.0"
-        FOLDER="object_store_connector-${VERSION}"
-        mkdir -p "${FOLDER}"
-        cp -r object_store_connector scripts "${FOLDER}/"
-        cp metadata.json ui-config.json *.svg README.md "${FOLDER}/" || true
-        echo "Version: ${VERSION}" > "${FOLDER}/VERSION.txt"
+        FIXED_FOLDER="object_store_connector-1.0.0"
+        mkdir -p "${FIXED_FOLDER}"
+        cp -r object_store_connector scripts "${FIXED_FOLDER}/"
+        cp metadata.json ui-config.json *.svg README.md "${FIXED_FOLDER}/" || true
+        echo "Version: 1.0.0" > "${FIXED_FOLDER}/VERSION.txt"
 
     - name: Create Tarball
       run: |
